@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import '../../models/history_item.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
@@ -139,5 +140,35 @@ class ApiClient {
       sessionId:  sessionId,
     );
     return SearchResult.fromJson(raw);
+  }
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+
+  /// Inject or remove the Bearer token used for authenticated requests.
+  void setAuthToken(String? token) {
+    if (token != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+    } else {
+      _dio.options.headers.remove('Authorization');
+    }
+  }
+
+  /// Exchange a Google ID token for a Go4 JWT + user profile.
+  Future<Map<String, dynamic>> signInWithGoogle(String idToken) async {
+    final res = await _dio.post(
+      '/api/v1/auth/google',
+      data: {'idToken': idToken},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ── History ─────────────────────────────────────────────────────────────────
+
+  /// Fetch the signed-in user's search history (up to 50 items).
+  Future<List<HistoryItem>> getHistory() async {
+    final res = await _dio.get('/api/v1/history');
+    return (res.data as List<dynamic>)
+        .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

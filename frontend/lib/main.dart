@@ -2,10 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: Go4App()));
+
+  // Restore persisted JWT + user profile before the first frame.
+  final container = ProviderContainer();
+  await container.read(authProvider.notifier).restore();
+
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const Go4App(),
+    ),
+  );
 }
 
 class Go4App extends StatelessWidget {

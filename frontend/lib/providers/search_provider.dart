@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
+import '../models/history_item.dart';
 import '../models/search_result.dart';
 
 enum SearchStatus { idle, processing, success, error }
@@ -65,6 +66,16 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   void reset() => state = const SearchState();
+
+  /// Load a [HistoryItem] into state so the results screen can display it.
+  void loadHistory(HistoryItem item) {
+    final result = SearchResult(
+      searchId: item.searchId,
+      tags: item.tags,
+      results: item.results,
+    );
+    state = SearchState(status: SearchStatus.success, result: result);
+  }
 }
 
 final searchProvider =

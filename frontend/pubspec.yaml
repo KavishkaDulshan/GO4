@@ -41,6 +41,12 @@ dependencies:
   http: ^1.2.2
   cached_network_image: ^3.3.1
 
+  # JWT / auth persistence
+  shared_preferences: ^2.3.2
+
+  # Open product URLs and Google Maps
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

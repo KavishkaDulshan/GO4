@@ -9,8 +9,12 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Route modules ───────────────────────────────────────────────────────────
-const searchRouter = require('./routes/search');
-const authRouter   = require('./routes/auth');
+const searchRouter  = require('./routes/search');
+const authRouter    = require('./routes/auth');
+const historyRouter = require('./routes/history');
+
+// ─── Middleware ──────────────────────────────────────────────────────────────
+const authMiddleware = require('./middleware/auth');
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 const app = express();
@@ -133,6 +137,9 @@ app.use(
 
 // Authentication
 app.use('/api/v1/auth', authRouter);
+
+// Search history (soft auth: works for signed-in users and anonymous sessions)
+app.use('/api/v1/history', authMiddleware, historyRouter);
 
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
