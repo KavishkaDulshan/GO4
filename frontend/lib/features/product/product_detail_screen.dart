@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../models/product_enrichment.dart';
 import '../../models/product_review.dart';
+import '../../providers/product_cache_provider.dart';
 import '../../providers/search_provider.dart';
 
 /// Full-screen product detail view with Gemini-enriched specifications.
@@ -32,6 +33,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   bool _reviewsLoaded = false;
   String? _reviewsError;
 
+  /// Stable key for this product in the cache: prefer URL, fall back to title.
+  String get _cacheKey => widget.product.link ?? widget.product.title;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +43,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Future<void> _loadEnrichment() async {
+    final cache = ref.read(productCacheProvider.notifier);
+
+    // Return immediately if already cached — no API call needed
+    final cached = cache.getEnrichment(_cacheKey);
+    if (cached != null) {
+      setState(() {
+        _enrichment = cached;
+        _isLoadingEnrichment = false;
+      });
+      return;
+    }
+
     final tags = ref.read(searchProvider).result?.tags;
     try {
       final enriched = await ApiClient.instance.enrichProduct(
@@ -47,6 +63,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         source: widget.product.source,
         price: widget.product.price,
       );
+      // Save to cache so subsequent opens skip the API call
+      cache.setEnrichment(_cacheKey, enriched);
       if (mounted) {
         setState(() {
           _enrichment = enriched;
@@ -65,6 +83,20 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   Future<void> _loadReviews() async {
     if (_isLoadingReviews || _reviewsLoaded) return;
+
+    final cache = ref.read(productCacheProvider.notifier);
+
+    // Return immediately if already cached — no API call needed
+    final cachedReviews = cache.getReviews(_cacheKey);
+    if (cachedReviews != null) {
+      setState(() {
+        _reviews = cachedReviews;
+        _reviewsLoaded = true;
+        _isLoadingReviews = false;
+      });
+      return;
+    }
+
     setState(() => _isLoadingReviews = true);
     final tags = ref.read(searchProvider).result?.tags;
     try {
@@ -72,6 +104,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         title: widget.product.title,
         category: tags?.category,
       );
+      // Save to cache
+      cache.setReviews(_cacheKey, result);
       if (mounted) {
         setState(() {
           _reviews = result;

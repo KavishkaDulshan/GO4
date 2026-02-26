@@ -32,8 +32,10 @@ router.get('/nearby', async (req, res, next) => {
     }
 
     // Build the location bias if coords supplied
+    // Pass the query directly — the Flutter layer already builds a
+    // purpose-specific store query (e.g. "electronics store", "toy store").
     const params = {
-      query: `${query} store`,
+      query,
       key: apiKey,
     };
     if (lat && lng) {
