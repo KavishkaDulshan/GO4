@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../models/history_item.dart';
+import '../../models/product_enrichment.dart';
+import '../../models/product_review.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
@@ -170,5 +172,79 @@ class ApiClient {
     return (res.data as List<dynamic>)
         .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  // ── Places ──────────────────────────────────────────────────────────────────
+
+  /// Find nearby stores for a product query.
+  ///
+  /// [query]  – product/category name (e.g. "blue denim jacket")
+  /// [lat]    – device latitude (optional but improves relevance)
+  /// [lng]    – device longitude (optional but improves relevance)
+  /// [radius] – search radius in metres (default 5000)
+  ///
+  /// Returns a list of place maps:
+  ///   { placeId, name, address, lat, lng, rating, types }
+  Future<List<Map<String, dynamic>>> getNearbyPlaces({
+    required String query,
+    double? lat,
+    double? lng,
+    int radius = 5000,
+  }) async {
+    final params = <String, dynamic>{'query': query, 'radius': radius};
+    if (lat != null) params['lat'] = lat;
+    if (lng != null) params['lng'] = lng;
+
+    final res = await _dio.get('/api/v1/places/nearby', queryParameters: params);
+    final data = res.data as Map<String, dynamic>;
+    return (data['places'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  // ── Product Enrichment ──────────────────────────────────────────────────────
+
+  /// Use Gemini to generate specs, description, and features for a product.
+  ///
+  /// [title]    – product title (required)
+  /// [category] – product category from Gemini image analysis
+  /// [source]   – store/retailer name
+  /// [price]    – price string
+  Future<ProductEnrichment> enrichProduct({
+    required String title,
+    String? category,
+    String? source,
+    String? price,
+  }) async {
+    final res = await _dio.post(
+      '/api/v1/product/enrich',
+      data: {
+        'title': title,
+        if (category != null) 'category': category,
+        if (source != null) 'source': source,
+        if (price != null) 'price': price,
+      },
+      options: Options(receiveTimeout: const Duration(seconds: 30)),
+    );
+    return ProductEnrichment.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Collect web review snippets and run Gemini analysis for a product.
+  ///
+  /// [title]    – product title (required)
+  /// [category] – product category from Gemini image analysis
+  Future<ProductReviewResult> getProductReviews({
+    required String title,
+    String? category,
+  }) async {
+    final res = await _dio.post(
+      '/api/v1/product/reviews',
+      data: {
+        'title': title,
+        if (category != null) 'category': category,
+      },
+      options: Options(
+        receiveTimeout: const Duration(seconds: 45), // Serper + Gemini can be slow
+      ),
+    );
+    return ProductReviewResult.fromJson(res.data as Map<String, dynamic>);
   }
 }

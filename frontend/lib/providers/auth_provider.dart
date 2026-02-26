@@ -8,7 +8,18 @@ import '../models/user_profile.dart';
 const _prefToken = 'pref_token';
 const _prefUserJson = 'pref_user_json';
 
-final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+// ─── Google client IDs ────────────────────────────────────────────────────────
+// serverClientId MUST be the **Web application** OAuth 2.0 client ID from
+// GCP Console → APIs & Services → Credentials.  It enables idToken issuance
+// so the backend can verify sign-ins via POST /api/v1/auth/google.
+// The value below comes from GOOGLE_CLIENT_ID in backend/.env.
+const _webClientId =
+    '642859857652-8grqto8t2mjlm8r3g98ig8relhk36ouj.apps.googleusercontent.com';
+
+final _googleSignIn = GoogleSignIn(
+  scopes: ['email', 'profile'],
+  serverClientId: _webClientId,
+);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -79,8 +90,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
-      if (idToken == null)
+      if (idToken == null) {
         throw Exception('Google did not return an ID token.');
+      }
 
       final data = await ApiClient.instance.signInWithGoogle(idToken);
       final token = data['token'] as String;

@@ -5,6 +5,8 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Google Services (required for google_sign_in idToken on Android)
+    id("com.google.gms.google-services")
 }
 
 // Load local.properties (MAPS_API_KEY lives here)

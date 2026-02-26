@@ -3,6 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const { analyzeImage } = require('../services/geminiService');
 const { searchShopping } = require('../services/serperService');
+const { transcribeAudio } = require('../services/transcriptionService');
 const SearchHistory = require('../models/SearchHistory');
 
 const router = express.Router();
@@ -22,10 +23,17 @@ function resolveMimeType(file) {
  *
  * multipart/form-data:
  *   image      (file, optional)   – product photo
- *   audio      (file, optional)   – voice recording
+ *   audio      (file, optional)   – voice recording (m4a / mp3 / wav)
  *   query      (string, optional) – plain-text fallback
- *   transcript (string, optional) – pre-transcribed voice text
+ *   transcript (string, optional) – pre-transcribed voice text (skips Groq call)
  *   sessionId  (string, optional) – anonymous session token
+ *
+ * Processing order:
+ *   1. If audio + no transcript → Groq Whisper → transcript
+ *   2. If image → Gemini vision analysis (transcript used as voice hint)
+ *   3. If no image  → text-only search using transcript
+ *   4. Serper Google Shopping search
+ *   5. Save to MongoDB
  *
  * Response 200:
  * { searchId, tags: { productName, category, color, material, style, searchQuery },
@@ -35,7 +43,8 @@ router.post('/', async (req, res, next) => {
   const t0 = Date.now();
   const imageFile = req.files?.image?.[0] ?? null;
   const audioFile = req.files?.audio?.[0] ?? null;
-  const { query, transcript, sessionId } = req.body;
+  const { query, sessionId } = req.body;
+  let { transcript } = req.body;
 
   console.log(
     `[Search] ▶  image=${imageFile ? `${imageFile.originalname} (${(imageFile.size/1024).toFixed(1)}KB)` : 'none'}` +
@@ -60,18 +69,31 @@ router.post('/', async (req, res, next) => {
   };
 
   try {
+    // ── Step 1: Transcribe audio via Groq Whisper ────────────────────────────
+    if (audioFile && !transcript) {
+      console.log(`[Search] Groq Whisper → transcribing ${audioFile.originalname}…`);
+      try {
+        transcript = await transcribeAudio(audioFile.path);
+        console.log(`[Search] Groq Whisper ✅  "${transcript}"`);
+      } catch (transcribeErr) {
+        console.warn(`[Search] Groq Whisper ⚠️  transcription failed (non-fatal): ${transcribeErr.message}`);
+        transcript = query ?? '';
+      }
+    }
+
+    // ── Step 2: Gemini image analysis OR text-only fallback ──────────────────
     let tags;
 
     if (imageFile) {
       const mimeType = resolveMimeType(imageFile);
-      const voiceHint = transcript ?? null;
-      console.log(`[Search] Gemini → analyzing ${mimeType} image${voiceHint ? ` with transcript hint` : ''}`);
+      const voiceHint = transcript || null;
+      console.log(`[Search] Gemini → analyzing ${mimeType} image${voiceHint ? ` with voice hint: "${voiceHint}"` : ''}`);
       tags = await analyzeImage(imageFile.path, mimeType, voiceHint);
       console.log(`[Search] Gemini ✅  tags: ${JSON.stringify(tags)}`);
     } else {
-      // Text-only fallback (no image supplied)
+      // Voice-only or text-only — use transcript as the search query
       const textQuery = transcript ?? query ?? '';
-      console.log(`[Search] Text-only fallback → query="${textQuery}"`);
+      console.log(`[Search] Voice/text-only → query="${textQuery}"`);
       tags = {
         productName: textQuery,
         category: null,
@@ -82,16 +104,25 @@ router.post('/', async (req, res, next) => {
       };
     }
 
-    // Query Google Shopping via Serper
-    console.log(`[Search] Serper → "${tags.searchQuery ?? tags.productName}"`);
-    const results = await searchShopping(tags.searchQuery ?? tags.productName);
+    // ── Step 3: Guard against empty search query ─────────────────────────────
+    const searchQuery = (tags.searchQuery ?? tags.productName ?? '').trim();
+    if (!searchQuery) {
+      cleanup();
+      return res.status(400).json({
+        error: 'Could not determine a search query. Please speak clearly or take a clearer photo.',
+      });
+    }
+
+    // ── Step 4: Google Shopping via Serper ───────────────────────────────────
+    console.log(`[Search] Serper → "${searchQuery}"`);
+    const results = await searchShopping(searchQuery);
     console.log(`[Search] Serper ✅  ${results.length} result(s)`);
 
-    // Persist to MongoDB (non-blocking — never fail the request on a DB error)
+    // ── Step 5: Persist to MongoDB ───────────────────────────────────────────
     let searchId = null;
     try {
       const doc = await SearchHistory.create({
-        userId: req.user?._id ?? undefined,
+        userId: req.user?.sub ? new (require('mongoose').Types.ObjectId)(req.user.sub) : undefined,
         sessionId: sessionId ?? undefined,
         tags,
         results,

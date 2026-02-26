@@ -8,12 +8,10 @@ const SERPER_ENDPOINT = 'https://google.serper.dev/shopping';
  *
  * @param {string} searchQuery - Product search query from Gemini.
  * @param {object} opts
- * @param {string} [opts.gl='us']  Country code. 'lk' (Sri Lanka) returns near-zero
- *                                 Google Shopping listings, so 'us' is the practical
- *                                 default until a local catalogue is available.
+ * @param {string} [opts.gl='us']  Country code.
  * @param {string} [opts.hl='en']  Language.
- * @param {number} [opts.num=10]   Max results to return.
- * @returns {Promise<Array<{title,price,link,thumbnail,source,rating,ratingCount}>>}
+ * @param {number} [opts.num=20]   Max results to return.
+ * @returns {Promise<Array>} Normalised product list
  */
 async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 20 } = {}) {
   const response = await axios.post(
@@ -30,16 +28,60 @@ async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 20 } = 
 
   const shopping = response.data?.shopping ?? [];
 
-  // Serper returns imageUrl, not thumbnail — normalize to internal field name
-  return shopping.map((item) => ({
-    title: item.title ?? 'Untitled',
-    price: item.price ?? null,
-    link: item.link ?? null,
-    thumbnail: item.imageUrl ?? item.thumbnail ?? null,
-    source: item.source ?? null,
-    rating: typeof item.rating === 'number' ? item.rating : null,
-    ratingCount: typeof item.ratingCount === 'number' ? item.ratingCount : null,
-  }));
+  // Helper: detect base64 data URIs (unusable as HTTP image URLs)
+  const isBase64 = (url) => typeof url === 'string' && url.startsWith('data:');
+  const safeUrl  = (url) => (isBase64(url) ? null : url ?? null);
+  const logUrl   = (url) => isBase64(url) ? `[base64-img ~${Math.round(url.length / 1024)}KB]` : (url ?? '(none)');
+
+  // Log a compact summary of the first raw item for diagnostics
+  if (shopping.length > 0) {
+    const sample = shopping[0];
+    console.log('[Serper] Fields from first result:', Object.keys(sample).join(', '));
+    console.log('[Serper] imageUrl:', logUrl(sample.imageUrl));
+    console.log('[Serper] thumbnail:', logUrl(sample.thumbnail));
+  }
+
+  const mapped = shopping.map((item) => {
+    // Resolve an HTTP image URL — discard base64 data URIs (CachedNetworkImage can't use them)
+    const imageUrl =
+      safeUrl(item.imageUrl)        // Serper Shopping primary image
+      ?? safeUrl(item.image)        // alternate key
+      ?? safeUrl(item.thumbnailUrl) // rare variant
+      ?? null;
+
+    const thumbnail = safeUrl(item.thumbnail) ?? imageUrl;
+
+    // Parse extensions/features array — Serper returns strings like "Brand: Nike"
+    const extensions = Array.isArray(item.extensions)
+      ? item.extensions.filter((e) => typeof e === 'string')
+      : [];
+
+    return {
+      title:         item.title         ?? 'Untitled',
+      price:         item.price         ?? null,
+      originalPrice: item.originalPrice ?? null,
+      link:          item.link          ?? null,
+      imageUrl,
+      thumbnail,
+      source:        item.source        ?? null,
+      rating:        typeof item.rating     === 'number' ? item.rating     : null,
+      ratingCount:   typeof item.ratingCount === 'number' ? item.ratingCount : null,
+      delivery:      item.delivery      ?? item.shippingPrice ?? null,
+      offers:        typeof item.offers === 'number' ? item.offers : null,
+      extensions,
+    };
+  });
+
+  // Sort: items with a valid image first
+  const sorted = [...mapped].sort((a, b) => {
+    if (a.thumbnail && !b.thumbnail) return -1;
+    if (!a.thumbnail && b.thumbnail) return 1;
+    return 0;
+  });
+
+  const withImg = sorted.filter((i) => i.thumbnail).length;
+  console.log(`[Serper] ${sorted.length} results, ${withImg} with image`);
+  return sorted;
 }
 
 module.exports = { searchShopping };

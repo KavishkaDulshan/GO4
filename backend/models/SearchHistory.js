@@ -15,13 +15,18 @@ const tagSchema = new mongoose.Schema(
 
 const productSchema = new mongoose.Schema(
   {
-    title: { type: String },
-    price: { type: String },
-    link: { type: String },
-    thumbnail: { type: String },
-    source: { type: String },
-    rating: { type: Number },
-    ratingCount: { type: Number },
+    title:         { type: String },
+    price:         { type: String },
+    originalPrice: { type: String },
+    link:          { type: String },
+    imageUrl:      { type: String },
+    thumbnail:     { type: String },
+    source:        { type: String },
+    rating:        { type: Number },
+    ratingCount:   { type: Number },
+    delivery:      { type: String },
+    offers:        { type: Number },
+    extensions:    { type: [String], default: [] },
   },
   { _id: false }
 );
