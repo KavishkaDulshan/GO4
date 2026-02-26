@@ -85,6 +85,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() => _isRecording = false);
     if (path != null) {
       ref.read(searchProvider.notifier).captureAudio(path);
+      // Immediately submit a voice-only search so mic release triggers a result
+      ref.read(searchProvider.notifier).submitSearch();
+      if (mounted) context.push('/processing');
     }
   }
 
@@ -133,8 +136,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 child: Text(
                   _isRecording
-                      ? 'Recording voice...'
-                      : 'Point at a product & tap',
+                      ? 'Release to search by voice…'
+                      : 'Tap camera · Hold mic to voice search',
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ),

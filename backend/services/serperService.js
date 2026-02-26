@@ -30,16 +30,22 @@ async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 20 } = 
 
   const shopping = response.data?.shopping ?? [];
 
-  // Serper returns imageUrl, not thumbnail — normalize to internal field name
-  return shopping.map((item) => ({
+  // Serper returns both `thumbnail` (small CDN image, always loads) and
+  // `imageUrl` (large Google-proxied image, may be blocked on Android).
+  // Prefer `thumbnail` — it is reliable across all network contexts.
+  const mapped = shopping.map((item) => ({
     title: item.title ?? 'Untitled',
     price: item.price ?? null,
     link: item.link ?? null,
-    thumbnail: item.imageUrl ?? item.thumbnail ?? null,
+    thumbnail: item.thumbnail ?? item.imageUrl ?? null,
     source: item.source ?? null,
     rating: typeof item.rating === 'number' ? item.rating : null,
     ratingCount: typeof item.ratingCount === 'number' ? item.ratingCount : null,
   }));
+
+  const withImg = mapped.filter((i) => i.thumbnail).length;
+  console.log(`[Serper] ${mapped.length} results, ${withImg} with thumbnail`);
+  return mapped;
 }
 
 module.exports = { searchShopping };
