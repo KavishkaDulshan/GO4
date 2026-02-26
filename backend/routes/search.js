@@ -122,7 +122,7 @@ router.post('/', async (req, res, next) => {
     let searchId = null;
     try {
       const doc = await SearchHistory.create({
-        userId: req.user?._id ?? undefined,
+        userId: req.user?.sub ? new (require('mongoose').Types.ObjectId)(req.user.sub) : undefined,
         sessionId: sessionId ?? undefined,
         tags,
         results,

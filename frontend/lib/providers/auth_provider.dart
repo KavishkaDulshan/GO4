@@ -90,8 +90,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
-      if (idToken == null)
+      if (idToken == null) {
         throw Exception('Google did not return an ID token.');
+      }
 
       final data = await ApiClient.instance.signInWithGoogle(idToken);
       final token = data['token'] as String;

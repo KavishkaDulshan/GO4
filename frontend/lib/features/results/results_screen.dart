@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../providers/search_provider.dart';
@@ -19,8 +18,7 @@ class ResultsScreen extends ConsumerWidget {
       return Scaffold(
         appBar: AppBar(title: const Text('Results')),
         body: const Center(
-          child:
-              Text('No results yet.', style: TextStyle(color: Colors.white54)),
+          child: Text('No results yet.', style: TextStyle(color: Colors.white54)),
         ),
       );
     }
@@ -32,6 +30,14 @@ class ResultsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
+        actions: [
+          // Navigate to Map tab while keeping search state in provider
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            tooltip: 'View on Map',
+            onPressed: () => context.go('/map'),
+          ),
+        ],
         bottom: result.tags.chips.isNotEmpty
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(48),
@@ -39,8 +45,8 @@ class ResultsScreen extends ConsumerWidget {
                   height: 44,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4),
                     children: result.tags.chips
                         .map((c) => Padding(
                               padding: const EdgeInsets.only(right: 8),
@@ -57,7 +63,8 @@ class ResultsScreen extends ConsumerWidget {
           : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: result.results.length,
-              itemBuilder: (ctx, i) => _ProductCard(product: result.results[i]),
+              itemBuilder: (ctx, i) =>
+                  _ProductCard(product: result.results[i]),
             ),
     );
   }
@@ -99,20 +106,13 @@ class _ProductCard extends StatelessWidget {
   final Product product;
   const _ProductCard({required this.product});
 
-  Future<void> _openLink() async {
-    if (product.link == null) return;
-    final uri = Uri.parse(product.link!);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      // Silently ignore if URL cannot be launched
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final img = product.displayImage;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: product.link != null ? _openLink : null,
+        onTap: () => context.push('/product', extra: product),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -125,15 +125,16 @@ class _ProductCard extends StatelessWidget {
                 child: SizedBox(
                   width: 72,
                   height: 72,
-                  child: product.thumbnail != null
+                  child: img != null
                       ? CachedNetworkImage(
-                          imageUrl: product.thumbnail!,
+                          imageUrl: img,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => const Center(
                             child: SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
                             ),
                           ),
                           errorWidget: (_, __, ___) => const Icon(
@@ -164,27 +165,59 @@ class _ProductCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Price row: show sale price + strikethrough original
                     if (product.price != null)
-                      Text(
-                        product.price!,
-                        style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            product.price!,
+                            style: const TextStyle(
+                              color: AppTheme.accent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          if (product.originalPrice != null) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              product.originalPrice!,
+                              style: const TextStyle(
+                                color: Colors.white38,
+                                fontSize: 12,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     const SizedBox(height: 2),
                     if (product.source != null)
                       Text(
                         product.source!,
-                        style:
-                            const TextStyle(color: Colors.white38, fontSize: 12),
+                        style: const TextStyle(
+                            color: Colors.white38, fontSize: 12),
                       ),
+                    if (product.delivery != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.local_shipping_outlined,
+                              size: 12, color: Colors.green),
+                          const SizedBox(width: 3),
+                          Text(
+                            product.delivery!,
+                            style: const TextStyle(
+                                color: Colors.green, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (product.rating != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.star, size: 14, color: Colors.amber),
+                          const Icon(Icons.star,
+                              size: 14, color: Colors.amber),
                           const SizedBox(width: 2),
                           Text(
                             '${product.rating!.toStringAsFixed(1)}'
@@ -199,19 +232,17 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
 
-              // Right column: verified badge + optional link icon
-              Column(
+              // Right column: verified badge + detail arrow
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const _VerifiedBadge(),
-                  if (product.link != null) ...[
-                    const SizedBox(height: 6),
-                    const Icon(
-                      Icons.open_in_new,
-                      size: 14,
-                      color: Colors.white38,
-                    ),
-                  ],
+                  _VerifiedBadge(),
+                  SizedBox(height: 6),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Colors.white38,
+                  ),
                 ],
               ),
             ],
@@ -242,7 +273,9 @@ class _VerifiedBadge extends StatelessWidget {
           Text(
             'Live',
             style: TextStyle(
-                color: Colors.green, fontSize: 10, fontWeight: FontWeight.w600),
+                color: Colors.green,
+                fontSize: 10,
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),

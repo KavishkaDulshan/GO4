@@ -5,7 +5,9 @@ import '../../features/results/results_screen.dart';
 import '../../features/map/map_screen.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/product/product_detail_screen.dart';
 import '../../features/shell/app_shell.dart';
+import '../../models/product.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -23,5 +25,12 @@ final appRouter = GoRouter(
     // ── Full-screen routes: no bottom nav bar ────────────────────────────
     GoRoute(path: '/processing', builder: (_, __) => const ProcessingScreen()),
     GoRoute(path: '/results', builder: (_, __) => const ResultsScreen()),
+    GoRoute(
+      path: '/product',
+      builder: (_, state) {
+        final product = state.extra as Product;
+        return ProductDetailScreen(product: product);
+      },
+    ),
   ],
 );

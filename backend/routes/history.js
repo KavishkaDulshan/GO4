@@ -1,5 +1,6 @@
 'use strict';
 const express = require('express');
+const mongoose = require('mongoose');
 const SearchHistory = require('../models/SearchHistory');
 
 const router = express.Router();
@@ -21,7 +22,7 @@ router.get('/', async (req, res, next) => {
     let filter;
 
     if (req.user?.sub) {
-      filter = { userId: req.user.sub };
+      filter = { userId: new mongoose.Types.ObjectId(req.user.sub) };
     } else if (req.query.sessionId) {
       filter = { sessionId: req.query.sessionId };
     } else {

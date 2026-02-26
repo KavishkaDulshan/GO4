@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../core/api/api_client.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/search_provider.dart';
 
@@ -13,7 +16,13 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
+  final Completer<GoogleMapController> _mapController = Completer();
   bool _locationDialogShown = false;
+
+  // Places state
+  Set<Marker>  _markers          = {};
+  bool         _isLoadingPlaces  = false;
+  int          _placeCount       = -1; // -1 = not yet searched
 
   @override
   Widget build(BuildContext context) {
@@ -64,40 +73,70 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       zoom: position != null ? 14 : 2,
     );
 
-    final query = result?.tags.searchQuery as String? ??
-        result?.tags.productName as String? ??
-        '';
+    // Display label: show product name so user knows what they last searched
+    final displayQuery = result?.tags.productName ?? result?.tags.searchQuery ?? '';
+
+    // Places query: use category (e.g. "Electronics store") — much better than
+    // the full search query for Google Places API relevance
+    final category = result?.tags.category ?? '';
+    final placesQuery = category.isNotEmpty
+        ? '$category store'
+        : displayQuery.isNotEmpty
+            ? '$displayQuery store'
+            : 'retail store';
 
     return Scaffold(
       body: Stack(
         children: [
-          // ── Google Map fills screen ─────────────────────────────────────────
+          // ── Google Map fills screen ───────────────────────────────────────
           GoogleMap(
             initialCameraPosition: initialCamera,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
             zoomControlsEnabled: false,
+            markers: _markers,
+            onMapCreated: (ctrl) {
+              if (!_mapController.isCompleted) _mapController.complete(ctrl);
+            },
           ),
 
-          // ── Back button overlay ─────────────────────────────────────────────
+          // ── Back button overlay ───────────────────────────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: FloatingActionButton.small(
-                heroTag: 'mapBack',
-                backgroundColor: Colors.black54,
-                onPressed: () => Navigator.maybePop(context),
-                child: const Icon(Icons.arrow_back, color: Colors.white),
+              child: Row(
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'mapBack',
+                    backgroundColor: Colors.black54,
+                    onPressed: () => Navigator.maybePop(context),
+                    child: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                  // "View Results" button — shown when user came from a search
+                  if (result != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: FloatingActionButton.extended(
+                        heroTag: 'mapResults',
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        icon: const Icon(Icons.list_alt, size: 18),
+                        label: const Text('Results',
+                            style: TextStyle(fontSize: 13)),
+                        onPressed: () => context.push('/results'),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
 
-          // ── Bottom panel: "Find nearby stores" ─────────────────────────────
-          if (result != null && query.isNotEmpty)
+          // ── Bottom panel ──────────────────────────────────────────────────
+          if (result != null && displayQuery.isNotEmpty)
             DraggableScrollableSheet(
-              initialChildSize: 0.18,
+              initialChildSize: 0.20,
               minChildSize: 0.12,
-              maxChildSize: 0.35,
+              maxChildSize: 0.45,
               builder: (ctx, scrollCtrl) => Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E1E2E),
@@ -126,7 +165,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: Chip(
                         avatar: const Icon(Icons.search, size: 16),
                         label: Text(
-                          query,
+                          displayQuery,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -134,11 +173,49 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Place count badge (after search)
+                    if (_placeCount == 0)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Center(
+                          child: Text(
+                            'No stores found nearby.',
+                            style: TextStyle(
+                                color: Colors.white38, fontSize: 13),
+                          ),
+                        ),
+                      )
+                    else if (_placeCount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Center(
+                          child: Text(
+                            '$_placeCount store${_placeCount == 1 ? '' : 's'} found nearby',
+                            style: const TextStyle(
+                              color: AppTheme.accent,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+
                     // Find nearby stores button
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.store_mall_directory_outlined),
-                      label: const Text('Find nearby stores'),
-                      onPressed: () => _findNearbyStores(position, query),
+                      icon: _isLoadingPlaces
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.store_mall_directory_outlined),
+                      label: Text(_isLoadingPlaces
+                          ? 'Searching…'
+                          : 'Find nearby stores'),
+                      onPressed: _isLoadingPlaces
+                          ? null
+                          : () => _loadNearbyPlaces(position, placesQuery),
                     ),
                   ],
                 ),
@@ -149,30 +226,76 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  Future<void> _findNearbyStores(LatLng? position, String query) async {
-    Uri uri;
-    if (position != null) {
-      uri = Uri.parse(
-        'geo:${position.latitude},${position.longitude}'
-        '?q=${Uri.encodeComponent(query)}',
-      );
-    } else {
-      uri = Uri.parse(
-        'https://maps.google.com/?q=${Uri.encodeComponent(query)}',
-      );
-    }
+  Future<void> _loadNearbyPlaces(LatLng? position, String query) async {
+    if (_isLoadingPlaces) return;
+    setState(() {
+      _isLoadingPlaces = true;
+      _markers = {};
+      _placeCount = -1;
+    });
 
-    final canUseGeo = position != null && await canLaunchUrl(uri);
-    if (!canUseGeo) {
-      uri = Uri.parse(
-        'https://maps.google.com/?q=${Uri.encodeComponent(query)}',
+    try {
+      final places = await ApiClient.instance.getNearbyPlaces(
+        query: query,
+        lat: position?.latitude,
+        lng: position?.longitude,
       );
-    }
 
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      final newMarkers = <Marker>{};
+      for (final p in places) {
+        final lat = (p['lat'] as num?)?.toDouble();
+        final lng = (p['lng'] as num?)?.toDouble();
+        if (lat == null || lng == null) continue;
+
+        final id = MarkerId(p['placeId'] as String? ?? '$lat,$lng');
+        newMarkers.add(
+          Marker(
+            markerId: id,
+            position: LatLng(lat, lng),
+            infoWindow: InfoWindow(
+              title: p['name'] as String? ?? 'Store',
+              snippet: p['address'] as String? ?? '',
+            ),
+          ),
+        );
+      }
+
       if (mounted) {
+        setState(() {
+          _markers = newMarkers;
+          _placeCount = newMarkers.length;
+          _isLoadingPlaces = false;
+        });
+
+        // Zoom to fit all markers if we found any
+        if (newMarkers.isNotEmpty && _mapController.isCompleted) {
+          final ctrl = await _mapController.future;
+          if (newMarkers.length == 1) {
+            ctrl.animateCamera(
+              CameraUpdate.newLatLngZoom(newMarkers.first.position, 15),
+            );
+          } else {
+            final lats = newMarkers.map((m) => m.position.latitude);
+            final lngs = newMarkers.map((m) => m.position.longitude);
+            ctrl.animateCamera(
+              CameraUpdate.newLatLngBounds(
+                LatLngBounds(
+                  southwest: LatLng(lats.reduce((a, b) => a < b ? a : b),
+                      lngs.reduce((a, b) => a < b ? a : b)),
+                  northeast: LatLng(lats.reduce((a, b) => a > b ? a : b),
+                      lngs.reduce((a, b) => a > b ? a : b)),
+                ),
+                80,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPlaces = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open Maps app.')),
+          SnackBar(content: Text('Could not load nearby stores: $e')),
         );
       }
     }

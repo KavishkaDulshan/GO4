@@ -12,6 +12,8 @@ const fs = require('fs');
 const searchRouter  = require('./routes/search');
 const authRouter    = require('./routes/auth');
 const historyRouter = require('./routes/history');
+const placesRouter  = require('./routes/places');
+const productRouter = require('./routes/product');
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 const authMiddleware = require('./middleware/auth');
@@ -125,13 +127,14 @@ app.get('/api/v1/health', (_req, res) => {
   });
 });
 
-// Multimodal search — Multer middleware applied here so router gets req.files
+// Multimodal search — Multer then soft-auth (so signed-in users get their userId saved)
 app.use(
   '/api/v1/search',
   upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'audio', maxCount: 1 },
   ]),
+  authMiddleware,
   searchRouter
 );
 
@@ -140,6 +143,12 @@ app.use('/api/v1/auth', authRouter);
 
 // Search history (soft auth: works for signed-in users and anonymous sessions)
 app.use('/api/v1/history', authMiddleware, historyRouter);
+
+// Nearby places (Google Places Text Search, no auth required)
+app.use('/api/v1/places', placesRouter);
+
+// Product enrichment (Gemini-powered specs/description, no auth required)
+app.use('/api/v1/product', productRouter);
 
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
