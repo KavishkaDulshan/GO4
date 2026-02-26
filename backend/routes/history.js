@@ -35,10 +35,25 @@ router.get('/', async (req, res, next) => {
       .select('_id tags results imagePath createdAt')
       .lean();
 
+    // Strip base64 data URIs that old records may have stored before the
+    // upstream serperService filtering was added.  A single base64 thumbnail
+    // can be ~100 KB — multiplied across many products and history items it
+    // easily blows DIO's 30-second receive timeout.
+    const sanitizeProduct = (p) => ({
+      ...p,
+      imageUrl:   p.imageUrl?.startsWith('data:')   ? null : (p.imageUrl  ?? null),
+      thumbnail:  p.thumbnail?.startsWith('data:')  ? null : (p.thumbnail ?? null),
+      // Drop the extensions array — it is not displayed in the history card
+      // and can be sizeable for some products.
+      extensions: undefined,
+    });
+
     const items = docs.map((d) => ({
-      searchId: d._id.toString(),
-      tags: d.tags,
-      results: d.results,
+      searchId:  d._id.toString(),
+      tags:      d.tags,
+      // Limit to the first 10 products — history cards only show 3 thumbnails
+      // and re-running the search loads the full list anyway.
+      results:   (d.results ?? []).slice(0, 10).map(sanitizeProduct),
       imagePath: d.imagePath,
       createdAt: d.createdAt,
     }));

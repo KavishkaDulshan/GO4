@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../models/history_item.dart';
 import '../../models/product_enrichment.dart';
 import '../../models/product_review.dart';
+import '../../models/search_filter.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
@@ -144,7 +145,50 @@ class ApiClient {
     return SearchResult.fromJson(raw);
   }
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
+  // ── Analyze (step 1 of the 2-step search flow) ───────────────────────────
+
+  /// Send image / audio inputs to the analyze endpoint.
+  /// Returns AI-detected tags + smart search filters.
+  /// Does NOT call Serper (no product list).
+  Future<AnalyzeResult> analyzeSearch({
+    String? imagePath,
+    String? audioPath,
+    String? query,
+    String? transcript,
+  }) async {
+    final formData = FormData();
+
+    if (imagePath != null) {
+      formData.files.add(MapEntry(
+        'image',
+        await MultipartFile.fromFile(
+          imagePath,
+          filename: File(imagePath).uri.pathSegments.last,
+        ),
+      ));
+    }
+    if (audioPath != null) {
+      formData.files.add(MapEntry(
+        'audio',
+        await MultipartFile.fromFile(
+          audioPath,
+          filename: File(audioPath).uri.pathSegments.last,
+        ),
+      ));
+    }
+    if (query      != null && query.isNotEmpty)      formData.fields.add(MapEntry('query',      query));
+    if (transcript != null && transcript.isNotEmpty) formData.fields.add(MapEntry('transcript', transcript));
+
+    final res = await _dio.post(
+      '/api/v1/analyze',
+      data: formData,
+      options: Options(
+        contentType: 'multipart/form-data',
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
+    return AnalyzeResult.fromJson(res.data as Map<String, dynamic>);
+  }
 
   /// Inject or remove the Bearer token used for authenticated requests.
   void setAuthToken(String? token) {
@@ -168,7 +212,10 @@ class ApiClient {
 
   /// Fetch the signed-in user's search history (up to 50 items).
   Future<List<HistoryItem>> getHistory() async {
-    final res = await _dio.get('/api/v1/history');
+    final res = await _dio.get(
+      '/api/v1/history',
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    );
     return (res.data as List<dynamic>)
         .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
         .toList();

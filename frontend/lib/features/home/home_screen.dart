@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import '../../core/theme/app_theme.dart';
 import '../../providers/search_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -46,13 +48,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _captureAndSubmit() async {
+  // ── Input capture ─────────────────────────────────────────────────────────
+
+  Future<void> _captureImage() async {
     if (!_cameraReady || _cameraController == null) return;
     try {
       final xFile = await _cameraController!.takePicture();
       ref.read(searchProvider.notifier).captureImage(xFile.path);
-      ref.read(searchProvider.notifier).submitSearch();
-      if (mounted) context.push('/processing');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,8 +69,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final xFile = await picker.pickImage(source: ImageSource.gallery);
     if (xFile == null) return;
     ref.read(searchProvider.notifier).captureImage(xFile.path);
-    ref.read(searchProvider.notifier).submitSearch();
-    if (mounted) context.push('/processing');
   }
 
   Future<void> _startRecording() async {
@@ -85,10 +85,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     setState(() => _isRecording = false);
     if (path != null) {
       ref.read(searchProvider.notifier).captureAudio(path);
-      // Immediately submit a voice-only search so mic release triggers a result
-      ref.read(searchProvider.notifier).submitSearch();
-      if (mounted) context.push('/processing');
     }
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  void _goSearch() {
+    ref.read(searchProvider.notifier).analyzeInputs();
+    context.push('/processing');
   }
 
   @override
@@ -100,12 +104,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(searchProvider);
+    final hasImage = state.capturedImagePath != null;
+    final hasAudio = state.capturedAudioPath != null;
+    final hasInput = hasImage || hasAudio;
+
+    final instruction = _isRecording
+        ? 'Release to finish recording…'
+        : hasImage && hasAudio
+            ? 'Both inputs ready — tap Search!'
+            : hasImage
+                ? 'Image captured · Hold mic to add voice hint'
+                : hasAudio
+                    ? 'Voice recorded · Tap camera for photo too'
+                    : 'Tap camera · Hold mic · Or pick from gallery';
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Camera preview ─────────────────────────────────────────────
+          // ── Camera preview ──────────────────────────────────────────────
           if (_cameraReady && _cameraController != null)
             CameraPreview(_cameraController!)
           else
@@ -118,6 +137,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Text('Starting camera…',
                       style: TextStyle(color: Colors.white54)),
                 ],
+              ),
+            ),
+
+          // ── Captured-image overlay (dim camera + show thumbnail) ────────
+          if (hasImage)
+            Positioned.fill(
+              child: Container(color: Colors.black54),
+            ),
+          if (hasImage)
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.5,
+                child: Image.file(
+                  File(state.capturedImagePath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
             ),
 
@@ -135,14 +171,67 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  _isRecording
-                      ? 'Release to search by voice…'
-                      : 'Tap camera · Hold mic to voice search',
+                  instruction,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
           ),
+
+          // ── Input badges (top-right area) ───────────────────────────────
+          Positioned(
+            top: 96,
+            right: 16,
+            child: Column(
+              children: [
+                if (hasImage)
+                  _InputBadge(
+                    icon: Icons.image,
+                    label: 'Photo',
+                    color: AppTheme.primary,
+                    onClear: () =>
+                        ref.read(searchProvider.notifier).clearImage(),
+                  ),
+                if (hasAudio) ...[
+                  if (hasImage) const SizedBox(height: 8),
+                  _InputBadge(
+                    icon: Icons.mic,
+                    label: 'Audio',
+                    color: Colors.orange,
+                    onClear: () =>
+                        ref.read(searchProvider.notifier).clearAudio(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // ── Search button (appears when inputs are ready) ───────────────
+          if (hasInput)
+            Positioned(
+              bottom: 152,
+              left: 40,
+              right: 40,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 8,
+                  shadowColor: AppTheme.primary.withValues(alpha: 0.5),
+                ),
+                icon: const Icon(Icons.search, size: 20),
+                label: const Text(
+                  'Search',
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                onPressed: _goSearch,
+              ),
+            ),
 
           // ── Bottom controls ─────────────────────────────────────────────
           Positioned(
@@ -161,31 +250,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     active: _isRecording,
                     activeColor: Colors.redAccent,
                     label: 'Hold',
+                    hasBadge: hasAudio && !_isRecording,
                   ),
                 ),
 
                 // Shutter
                 GestureDetector(
-                  onTap: _captureAndSubmit,
+                  onTap: _captureImage,
                   child: Container(
                     width: 76,
                     height: 76,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      color: Colors.white24,
+                      border: Border.all(
+                          color: hasImage ? AppTheme.primary : Colors.white,
+                          width: 4),
+                      color: hasImage
+                          ? AppTheme.primary.withValues(alpha: 0.3)
+                          : Colors.white24,
                     ),
-                    child: const Icon(Icons.camera_alt,
-                        color: Colors.white, size: 36),
+                    child: Icon(
+                      hasImage ? Icons.replay : Icons.camera_alt,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                   ),
                 ),
 
-                // Gallery picker
+                // Gallery picker (shows green badge when image is loaded via gallery)
                 GestureDetector(
                   onTap: _pickFromGallery,
                   child: const _ControlButton(
                     icon: Icons.photo_library_outlined,
                     label: 'Gallery',
+                    hasBadge: false,
                   ),
                 ),
               ],
@@ -197,17 +295,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
+// ─── Sub-widgets ──────────────────────────────────────────────────────────────
+
 class _ControlButton extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final bool active;
-  final Color activeColor;
+  final String   label;
+  final bool     active;
+  final Color    activeColor;
+  final bool     hasBadge;
 
   const _ControlButton({
     required this.icon,
     required this.label,
-    this.active = false,
+    this.active      = false,
     this.activeColor = Colors.white24,
+    this.hasBadge    = false,
   });
 
   @override
@@ -215,15 +317,74 @@ class _ControlButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundColor: active ? activeColor : Colors.white24,
-          child: Icon(icon, color: Colors.white, size: 26),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: active ? activeColor : Colors.white24,
+              child: Icon(icon, color: Colors.white, size: 26),
+            ),
+            if (hasBadge)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Colors.greenAccent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(label,
             style: const TextStyle(color: Colors.white54, fontSize: 11)),
       ],
+    );
+  }
+}
+
+class _InputBadge extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final Color    color;
+  final VoidCallback onClear;
+
+  const _InputBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onClear,
+            child: Icon(Icons.close, size: 13, color: color),
+          ),
+        ],
+      ),
     );
   }
 }

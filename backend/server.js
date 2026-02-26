@@ -10,6 +10,7 @@ const fs = require('fs');
 
 // ─── Route modules ───────────────────────────────────────────────────────────
 const searchRouter  = require('./routes/search');
+const analyzeRouter = require('./routes/analyze');
 const authRouter    = require('./routes/auth');
 const historyRouter = require('./routes/history');
 const placesRouter  = require('./routes/places');
@@ -136,6 +137,16 @@ app.use(
   ]),
   authMiddleware,
   searchRouter
+);
+
+// Analyze inputs → tags + smart filters (no Serper call)
+app.use(
+  '/api/v1/analyze',
+  upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'audio', maxCount: 1 },
+  ]),
+  analyzeRouter
 );
 
 // Authentication

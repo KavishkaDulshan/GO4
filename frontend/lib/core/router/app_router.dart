@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/processing/processing_screen.dart';
+import '../../features/filters/search_filters_screen.dart';
 import '../../features/results/results_screen.dart';
 import '../../features/map/map_screen.dart';
 import '../../features/history/history_screen.dart';
@@ -24,7 +25,8 @@ final appRouter = GoRouter(
     ),
     // ── Full-screen routes: no bottom nav bar ────────────────────────────
     GoRoute(path: '/processing', builder: (_, __) => const ProcessingScreen()),
-    GoRoute(path: '/results', builder: (_, __) => const ResultsScreen()),
+    GoRoute(path: '/filters',    builder: (_, __) => const SearchFiltersScreen()),
+    GoRoute(path: '/results',    builder: (_, __) => const ResultsScreen()),
     GoRoute(
       path: '/product',
       builder: (_, state) {

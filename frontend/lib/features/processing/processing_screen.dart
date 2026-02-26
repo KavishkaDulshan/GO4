@@ -23,13 +23,17 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
 
-    // Navigate when the search completes — must run after build
+    // Navigate on status changes — must run after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(
         searchProvider.select((s) => s.status),
         (_, status) {
           if (!mounted) return;
-          if (status == SearchStatus.success) {
+          if (status == SearchStatus.analyzed) {
+            // Analyze phase done → show filter screen
+            context.go('/filters');
+          } else if (status == SearchStatus.success) {
+            // Search phase done → show results
             context.go('/results');
           } else if (status == SearchStatus.error) {
             final msg =
@@ -54,11 +58,21 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(searchProvider);
 
+    // Pick messaging based on current phase
+    final isAnalyzing = state.status == SearchStatus.analyzing;
+    final title   = isAnalyzing ? 'Understanding…' : 'Searching…';
+    final message = isAnalyzing
+        ? 'AI is understanding your inputs…'
+        : 'AI is browsing products for you…';
+    final subMessage = isAnalyzing
+        ? 'Detecting product · Generating smart filters'
+        : 'Searching across thousands of listings';
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Analyzing…'),
+        title: Text(title),
       ),
       body: Center(
         child: Padding(
@@ -69,8 +83,8 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
               // Pulsing icon
               FadeTransition(
                 opacity: _pulseController,
-                child: const Icon(
-                  Icons.auto_awesome,
+                child: Icon(
+                  isAnalyzing ? Icons.psychology_outlined : Icons.auto_awesome,
                   size: 64,
                   color: AppTheme.primary,
                 ),
@@ -80,15 +94,22 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
               const CircularProgressIndicator(color: AppTheme.primary),
               const SizedBox(height: 24),
 
-              const Text(
-                'AI is browsing local inventory…',
-                style: TextStyle(color: Colors.white70, fontSize: 15),
+              Text(
+                message,
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subMessage,
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
 
-              // Tag chips appear as soon as Gemini responds
-              if (state.result != null &&
+              // Detected-attribute chips (search phase)
+              if (!isAnalyzing &&
+                  state.result != null &&
                   state.result!.tags.chips.isNotEmpty) ...[
                 const Text(
                   'Detected attributes:',
@@ -102,6 +123,18 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
                   children: state.result!.tags.chips
                       .map((chip) => Chip(label: Text(chip)))
                       .toList(),
+                ),
+              ],
+
+              // Analyzed product name (analyze phase in-progress)
+              if (isAnalyzing && state.analyzedTags != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  state.analyzedTags!['productName'] as String? ?? '',
+                  style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600),
                 ),
               ],
             ],
