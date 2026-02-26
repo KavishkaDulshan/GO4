@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../models/history_item.dart';
 import '../../models/product_enrichment.dart';
+import '../../models/product_review.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
@@ -224,5 +225,26 @@ class ApiClient {
       options: Options(receiveTimeout: const Duration(seconds: 30)),
     );
     return ProductEnrichment.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// Collect web review snippets and run Gemini analysis for a product.
+  ///
+  /// [title]    – product title (required)
+  /// [category] – product category from Gemini image analysis
+  Future<ProductReviewResult> getProductReviews({
+    required String title,
+    String? category,
+  }) async {
+    final res = await _dio.post(
+      '/api/v1/product/reviews',
+      data: {
+        'title': title,
+        if (category != null) 'category': category,
+      },
+      options: Options(
+        receiveTimeout: const Duration(seconds: 45), // Serper + Gemini can be slow
+      ),
+    );
+    return ProductReviewResult.fromJson(res.data as Map<String, dynamic>);
   }
 }

@@ -6,6 +6,7 @@ import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../models/product_enrichment.dart';
+import '../../models/product_review.dart';
 import '../../providers/search_provider.dart';
 
 /// Full-screen product detail view with Gemini-enriched specifications.
@@ -24,6 +25,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   ProductEnrichment? _enrichment;
   bool _isLoadingEnrichment = true;
   String? _enrichmentError;
+
+  // ── Review analysis state ─────────────────────────────────────────────────
+  ProductReviewResult? _reviews;
+  bool _isLoadingReviews = false;
+  bool _reviewsLoaded = false;
+  String? _reviewsError;
 
   @override
   void initState() {
@@ -51,6 +58,33 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         setState(() {
           _enrichmentError = e.toString();
           _isLoadingEnrichment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    if (_isLoadingReviews || _reviewsLoaded) return;
+    setState(() => _isLoadingReviews = true);
+    final tags = ref.read(searchProvider).result?.tags;
+    try {
+      final result = await ApiClient.instance.getProductReviews(
+        title: widget.product.title,
+        category: tags?.category,
+      );
+      if (mounted) {
+        setState(() {
+          _reviews = result;
+          _reviewsLoaded = true;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _reviewsError = e.toString();
+          _reviewsLoaded = true;
+          _isLoadingReviews = false;
         });
       }
     }
@@ -280,6 +314,61 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ...product.extensions.map((ext) =>
                           _LegacySpecRow(spec: ext)),
                     ],
+
+                  // ── Customer Review Analysis ─────────────────────────────
+                  const Divider(color: Colors.white12, height: 40),
+                  const _SectionHeader(label:'Customer Review Analysis'),
+                  const SizedBox(height: 14),
+
+                  if (!_reviewsLoaded && !_isLoadingReviews)
+                    // CTA button — reviews load on demand to keep screen fast
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        side: BorderSide(
+                            color: AppTheme.primary.withValues(alpha: 0.6)),
+                        foregroundColor: AppTheme.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.analytics_outlined, size: 18),
+                      label: const Text('Analyze Customer Reviews'),
+                      onPressed: _loadReviews,
+                    )
+                  else if (_isLoadingReviews)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 12),
+                            Text(
+                              'Searching reviews across the web…',
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 13),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Reddit · Amazon · CNET · Trustpilot',
+                              style: TextStyle(
+                                  color: Colors.white24, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (_reviews != null)
+                    _ReviewSection(result: _reviews!)
+                  else if (_reviewsError != null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Could not load reviews. Please try again.',
+                        style: TextStyle(
+                            color: Colors.white38, fontSize: 13),
+                      ),
+                    ),
 
                   const SizedBox(height: 32),
                 ],
@@ -608,6 +697,315 @@ class _LegacySpecRow extends StatelessWidget {
               style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Review section widgets ───────────────────────────────────────────────────
+
+class _ReviewSection extends StatelessWidget {
+  final ProductReviewResult result;
+  const _ReviewSection({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final a = result.analysis;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── AI Rating + Sentiment chip ───────────────────────────────────
+        Row(
+          children: [
+            if (a.aiRating != null) ...[
+              ...List.generate(5, (i) {
+                if (i < a.aiRating!.floor()) {
+                  return const Icon(Icons.star, size: 22, color: Colors.amber);
+                } else if (i < a.aiRating!) {
+                  return const Icon(Icons.star_half, size: 22, color: Colors.amber);
+                }
+                return const Icon(Icons.star_border, size: 22, color: Colors.amber);
+              }),
+              const SizedBox(width: 8),
+              Text(
+                a.aiRating!.toStringAsFixed(1),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface),
+              ),
+              const SizedBox(width: 4),
+              const Text('/5  AI',
+                  style: TextStyle(color: Colors.white38, fontSize: 12)),
+              const Spacer(),
+            ],
+            _SentimentChip(label: a.sentimentLabel),
+          ],
+        ),
+
+        // ── Satisfaction bar ─────────────────────────────────────────────
+        if (a.satisfactionPercent != null) ...[
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Text('Buyer satisfaction',
+                  style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const Spacer(),
+              Text('${a.satisfactionPercent}%',
+                  style: TextStyle(
+                      color: _satisfactionColor(a.satisfactionPercent!),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: a.satisfactionPercent! / 100,
+              minHeight: 8,
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  _satisfactionColor(a.satisfactionPercent!)),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 18),
+
+        // ── Summary ──────────────────────────────────────────────────────
+        if (a.summary.isNotEmpty)
+          Text(
+            a.summary,
+            style: const TextStyle(
+                color: Colors.white70, fontSize: 13, height: 1.5),
+          ),
+
+        const SizedBox(height: 18),
+
+        // ── Pros / Cons side by side ─────────────────────────────────────
+        if (a.pros.isNotEmpty || a.cons.isNotEmpty)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (a.pros.isNotEmpty)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(children: [
+                        Icon(Icons.thumb_up_outlined,
+                            size: 14, color: Colors.greenAccent),
+                        SizedBox(width: 5),
+                        Text('Pros',
+                            style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ]),
+                      const SizedBox(height: 8),
+                      ...a.pros.map((p) => _ProsConsRow(text: p, isPositive: true)),
+                    ],
+                  ),
+                ),
+              if (a.pros.isNotEmpty && a.cons.isNotEmpty)
+                const SizedBox(width: 12),
+              if (a.cons.isNotEmpty)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(children: [
+                        Icon(Icons.thumb_down_outlined,
+                            size: 14, color: Colors.redAccent),
+                        SizedBox(width: 5),
+                        Text('Cons',
+                            style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ]),
+                      const SizedBox(height: 8),
+                      ...a.cons.map((c) => _ProsConsRow(text: c, isPositive: false)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+
+        const SizedBox(height: 18),
+
+        // ── Verdict box ──────────────────────────────────────────────────
+        if (a.verdict.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primary.withValues(alpha: 0.15),
+                  AppTheme.accent.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.35)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(children: [
+                  Icon(Icons.verified_outlined,
+                      size: 15, color: AppTheme.accent),
+                  SizedBox(width: 6),
+                  Text('Go4 AI Verdict',
+                      style: TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4)),
+                ]),
+                const SizedBox(height: 6),
+                Text(
+                  a.verdict,
+                  style: const TextStyle(
+                      color: AppTheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4),
+                ),
+              ],
+            ),
+          ),
+
+        // ── Source snippets ──────────────────────────────────────────────
+        if (result.snippets.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const Text('Source Reviews',
+              style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 10),
+          ...result.snippets.take(6).map((s) => _SnippetCard(snippet: s)),
+        ],
+      ],
+    );
+  }
+
+  Color _satisfactionColor(int pct) {
+    if (pct >= 75) return Colors.greenAccent;
+    if (pct >= 50) return Colors.orangeAccent;
+    return Colors.redAccent;
+  }
+}
+
+class _SentimentChip extends StatelessWidget {
+  final String label;
+  const _SentimentChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (label) {
+      'Highly Positive'  => Colors.greenAccent,
+      'Mostly Positive'  => Colors.lightGreenAccent,
+      'Mostly Negative'  => Colors.orangeAccent,
+      'Highly Negative'  => Colors.redAccent,
+      _                  => Colors.white54,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class _ProsConsRow extends StatelessWidget {
+  final String text;
+  final bool isPositive;
+  const _ProsConsRow({required this.text, required this.isPositive});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isPositive ? Colors.greenAccent : Colors.redAccent;
+    final icon  = isPositive
+        ? Icons.add_circle_outline
+        : Icons.remove_circle_outline;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(icon, size: 13, color: color),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 12, height: 1.4)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnippetCard extends StatelessWidget {
+  final ReviewSnippet snippet;
+  const _SnippetCard({required this.snippet});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.tagChipBg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.language, size: 12, color: AppTheme.primary),
+              const SizedBox(width: 5),
+              Text(snippet.source,
+                  style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
+          if (snippet.title.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(snippet.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: AppTheme.onSurface,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+          ],
+          if (snippet.snippet.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(snippet.snippet,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white54, fontSize: 12, height: 1.4)),
+          ],
         ],
       ),
     );
