@@ -86,9 +86,14 @@ router.post('/', async (req, res, next) => {
       };
     }
 
-    // ── Step 3: Generate smart filters ─────────────────────────────────────
-    const filters = await generateFilters(tags, transcript ?? null);
-    console.log(`[Analyze] Filters ✅  ${filters.length} filter(s) in ${Date.now() - t0}ms`);
+    // ── Step 3: Generate smart filters (non-fatal) ─────────────────────────
+    let filters = [];
+    try {
+      filters = await generateFilters(tags, transcript ?? null);
+      console.log(`[Analyze] Filters ✅  ${filters.length} filter(s) in ${Date.now() - t0}ms`);
+    } catch (filterErr) {
+      console.warn(`[Analyze] Filters ⚠️  generation failed (non-fatal): ${filterErr.message}`);
+    }
 
     cleanup();
     return res.json({ tags, filters });

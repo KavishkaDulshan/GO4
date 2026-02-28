@@ -43,7 +43,8 @@ Additional rules:
 - Return ONLY the JSON array. No markdown fences, no prose.`;
 
 /**
- * Generate smart search filters for a product using Gemini 2.5 Flash.
+ * Generate smart search filters for a product using Gemini 2.5 Flash Lite.
+ * Uses a separate model from the image-analysis service so they don't share quota.
  *
  * @param {object}      tags        - Product tags: { productName, category, color, material, style, searchQuery }
  * @param {string|null} transcript  - Optional voice transcript from the user
@@ -51,7 +52,7 @@ Additional rules:
  */
 async function generateFilters(tags, transcript) {
   const model = genAI.getGenerativeModel(
-    { model: 'gemini-2.5-flash' },
+    { model: 'gemini-2.5-flash-lite' },
     { generationConfig: { responseMimeType: 'application/json' } }
   );
 
