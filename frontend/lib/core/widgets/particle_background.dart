@@ -66,12 +66,12 @@ class _ParticleBackgroundState extends State<ParticleBackground>
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
 class _Particle {
-  final double baseX;   // normalized 0–1 horizontal position
-  final double phase;   // normalized 0–1 vertical offset (stagger)
-  final double speed;   // loop speed multiplier
-  final double radius;  // paint radius in logical pixels
+  final double baseX; // normalized 0–1 horizontal position
+  final double phase; // normalized 0–1 vertical offset (stagger)
+  final double speed; // loop speed multiplier
+  final double radius; // paint radius in logical pixels
   final Color color;
-  final double drift;   // horizontal sway phase offset
+  final double drift; // horizontal sway phase offset
 
   const _Particle({
     required this.baseX,
@@ -83,12 +83,12 @@ class _Particle {
   });
 
   factory _Particle.random(Random rng, List<Color> palette) => _Particle(
-        baseX:  rng.nextDouble(),
-        phase:  rng.nextDouble(),
-        speed:  0.2 + rng.nextDouble() * 0.8,
+        baseX: rng.nextDouble(),
+        phase: rng.nextDouble(),
+        speed: 0.2 + rng.nextDouble() * 0.8,
         radius: 1.2 + rng.nextDouble() * 4.5,
-        color:  palette[rng.nextInt(palette.length)],
-        drift:  rng.nextDouble() * 2 * pi,
+        color: palette[rng.nextInt(palette.length)],
+        drift: rng.nextDouble() * 2 * pi,
       );
 }
 
