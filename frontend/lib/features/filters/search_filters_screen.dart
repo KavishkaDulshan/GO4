@@ -217,11 +217,11 @@ class _ProductCard extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     if (cat.isNotEmpty) _Chip(cat, AppTheme.primary),
-                    if (color != null) _Chip(color, Colors.blue),
-                    if (material != null) _Chip(material, Colors.teal),
-                    if (style != null) _Chip(style, Colors.purple),
+                    if (color != null) _Chip(color, AppTheme.primaryLight),
+                    if (material != null) _Chip(material, AppTheme.accent),
+                    if (style != null) _Chip(style, AppTheme.primaryLight),
                     if (state.capturedAudioPath != null)
-                      const _Chip('Voice input', Colors.orange),
+                      const _Chip('Voice input', AppTheme.accent),
                   ],
                 ),
               ],

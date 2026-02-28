@@ -21,13 +21,13 @@ class _ParticleBackgroundState extends State<ParticleBackground>
   late final List<_Particle> _particles;
 
   static const _palette = [
-    Color(0xFF6C63FF), // primary purple
-    Color(0xFF9B93FF), // light purple
-    Color(0xFF00E5CC), // teal accent
-    Color(0xFF00B4A3), // dark teal
-    Color(0xFFFF6BAE), // pink
-    Color(0xFF4FC3F7), // sky blue
-    Color(0xFFB388FF), // lavender
+    Color(0xFF2DA44E), // forest green
+    Color(0xFF3FB465), // lighter green
+    Color(0xFF56D364), // bright green
+    Color(0xFFE8912D), // warm amber
+    Color(0xFFF0A732), // bright amber
+    Color(0xFF58A6FF), // soft blue
+    Color(0xFF89D4A0), // pale green
     Color(0xFFFFFFFF), // white
   ];
 

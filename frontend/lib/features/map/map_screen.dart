@@ -136,7 +136,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               maxChildSize: 0.65,
               builder: (ctx, scrollCtrl) => Container(
                 decoration: const BoxDecoration(
-                  color: Color(0xFF1E1E2E),
+                  color: AppTheme.surface,
                   borderRadius:
                       BorderRadius.vertical(top: Radius.circular(20)),
                 ),
@@ -375,9 +375,9 @@ class _StoreCardState extends State<_StoreCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: AppTheme.surfaceBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +397,7 @@ class _StoreCardState extends State<_StoreCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -409,7 +409,7 @@ class _StoreCardState extends State<_StoreCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: Colors.white38, fontSize: 11),
+                              color: AppTheme.onSurfaceMid, fontSize: 11),
                         ),
                       ],
                       const SizedBox(height: 4),
@@ -444,7 +444,7 @@ class _StoreCardState extends State<_StoreCard> {
                             Text(
                               rating.toStringAsFixed(1),
                               style: const TextStyle(
-                                  color: Colors.white54, fontSize: 11),
+                                  color: AppTheme.onSurfaceMid, fontSize: 11),
                             ),
                           ],
                         ],
@@ -486,13 +486,13 @@ class _StoreCardState extends State<_StoreCard> {
                             Text(
                               _expanded ? 'Hide' : 'Hours',
                               style: const TextStyle(
-                                  color: Colors.white38, fontSize: 11),
+                                  color: AppTheme.onSurfaceMid, fontSize: 11),
                             ),
                             Icon(
                               _expanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: Colors.white38,
+                              color: AppTheme.onSurfaceMid,
                               size: 14,
                             ),
                           ],
@@ -506,9 +506,9 @@ class _StoreCardState extends State<_StoreCard> {
 
           // ── Expanded details ──────────────────────────────────────────────
           if (_expanded) ...[
-            Divider(
+            const Divider(
                 height: 1,
-                color: Colors.white.withValues(alpha: 0.08)),
+                color: AppTheme.surfaceBorder),
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -518,7 +518,7 @@ class _StoreCardState extends State<_StoreCard> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white38),
+                            strokeWidth: 2, color: AppTheme.onSurfaceMid),
                       ),
                     )
                   : Column(
@@ -529,12 +529,12 @@ class _StoreCardState extends State<_StoreCard> {
                           Row(
                             children: [
                               const Icon(Icons.phone,
-                                  size: 13, color: Colors.white38),
+                                  size: 13, color: AppTheme.onSurfaceMid),
                               const SizedBox(width: 6),
                               Text(
                                 phone,
                                 style: const TextStyle(
-                                    color: Colors.white54, fontSize: 12),
+                                    color: AppTheme.onSurfaceMid, fontSize: 12),
                               ),
                             ],
                           ),
@@ -545,7 +545,7 @@ class _StoreCardState extends State<_StoreCard> {
                           Row(
                             children: [
                               const Icon(Icons.language,
-                                  size: 13, color: Colors.white38),
+                                  size: 13, color: AppTheme.onSurfaceMid),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -553,7 +553,7 @@ class _StoreCardState extends State<_StoreCard> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      color: Colors.white54, fontSize: 12),
+                                      color: AppTheme.onSurfaceMid, fontSize: 12),
                                 ),
                               ),
                             ],
@@ -565,7 +565,7 @@ class _StoreCardState extends State<_StoreCard> {
                           const Text(
                             'Opening hours',
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: AppTheme.onSurfaceMid,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -577,7 +577,7 @@ class _StoreCardState extends State<_StoreCard> {
                                 child: Text(
                                   line,
                                   style: const TextStyle(
-                                      color: Colors.white54,
+                                      color: AppTheme.onSurfaceMid,
                                       fontSize: 11),
                                 ),
                               )),
@@ -585,7 +585,7 @@ class _StoreCardState extends State<_StoreCard> {
                           const Text(
                             'Hours not available',
                             style: TextStyle(
-                                color: Colors.white24, fontSize: 11),
+                                color: AppTheme.onSurfaceMid, fontSize: 11),
                           ),
                       ],
                     ),

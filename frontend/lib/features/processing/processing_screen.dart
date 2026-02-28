@@ -170,7 +170,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
                     subtitle,
                     key: ValueKey('sub_$isAnalyzing'),
                     style: const TextStyle(
-                      color:    Color(0xFFB0B0CC),
+                      color:    AppTheme.onSurfaceMid,
                       fontSize: 15,
                     ),
                     textAlign: TextAlign.center,
@@ -182,7 +182,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
                 Text(
                   hint,
                   style: const TextStyle(
-                    color:    Color(0xFF666688),
+                    color:    AppTheme.onSurfaceMid,
                     fontSize: 12,
                   ),
                   textAlign: TextAlign.center,
@@ -255,9 +255,9 @@ class _OrbWidget extends StatelessWidget {
                 shape:    BoxShape.circle,
                 gradient: const LinearGradient(
                   colors: [
-                    Color(0xFF9B7FFF),
-                    Color(0xFF6C63FF),
-                    Color(0xFF00B8A3),
+                    Color(0xFF3FB465),
+                    Color(0xFF2DA44E),
+                    Color(0xFF1A7F37),
                   ],
                   begin: Alignment.topLeft,
                   end:   Alignment.bottomRight,

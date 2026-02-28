@@ -85,7 +85,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
               '${products.length} results',
               style: const TextStyle(
                 fontSize: 11,
-                color:    Color(0xFF888899),
+                color:    AppTheme.onSurfaceMid,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -303,7 +303,7 @@ class _EmptyResults extends StatelessWidget {
             const Text(
               'Try a broader description\nor take a clearer photo.',
               textAlign: TextAlign.center,
-              style:     TextStyle(color: Color(0xFF888899), fontSize: 13),
+              style:     TextStyle(color: AppTheme.onSurfaceMid, fontSize: 13),
             ),
           ],
         ),
@@ -450,7 +450,7 @@ class _ProductCard extends ConsumerWidget {
                         Text(
                           product.source!,
                           style: const TextStyle(
-                            color:   Color(0xFF888899),
+                            color:   AppTheme.onSurfaceMid,
                             fontSize: 12,
                           ),
                         ),
@@ -490,7 +490,7 @@ class _ProductCard extends ConsumerWidget {
                               '${product.rating!.toStringAsFixed(1)}'
                               '${product.ratingCount != null ? ' (${product.ratingCount})' : ''}',
                               style: const TextStyle(
-                                color:   Color(0xFF888899),
+                                color:   AppTheme.onSurfaceMid,
                                 fontSize: 12,
                               ),
                             ),

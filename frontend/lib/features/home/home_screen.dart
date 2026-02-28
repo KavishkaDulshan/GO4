@@ -163,7 +163,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       width: 28, height: 28,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color:       Color(0xFF6C63FF),
+                        color:       AppTheme.primary,
                       ),
                     ),
                     SizedBox(height: 14),
@@ -271,7 +271,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   _InputBadge(
                     icon:    Icons.keyboard_rounded,
                     label:   'Text',
-                    color:   Colors.purpleAccent,
+                    color:   AppTheme.primaryLight,
                     onClear: () => ref.read(searchProvider.notifier).clearText(),
                   ),
                 ],

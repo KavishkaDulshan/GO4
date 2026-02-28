@@ -2,11 +2,19 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/history_item.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/history_provider.dart';
 import '../../providers/search_provider.dart';
 
+/// Search history screen.
+///
+/// HCI evaluation notes:
+/// · H1 Visibility of system status — loading/error/empty states all explicit.
+/// · H2 Match between system and real world — time-ago language ("2h ago").
+/// · H5 Error prevention — sign-in nudge explains why history is empty.
+/// · H8 Aesthetic minimalism — single row per item, no visual noise.
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
@@ -16,19 +24,11 @@ class HistoryScreen extends ConsumerWidget {
     final history = ref.watch(historyProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('History')),
       body: history.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'Failed to load history:\n$err',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          ),
-        ),
+        error: (err, _) => _ErrorState(message: err.toString()),
         data: (items) {
           if (!auth.isSignedIn) {
             return const _SignInNudge();
@@ -36,14 +36,12 @@ class HistoryScreen extends ConsumerWidget {
           if (items.isEmpty) {
             return const _EmptyHistory();
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 4),
             itemBuilder: (ctx, i) => _HistoryCard(
-              item: items[i],
+              item:  items[i],
               onTap: () {
-                // Load this history item into searchProvider and go to results
                 ref.read(searchProvider.notifier).loadHistory(items[i]);
                 ctx.push('/results');
               },
@@ -55,25 +53,60 @@ class HistoryScreen extends ConsumerWidget {
   }
 }
 
-// ── Nudge for signed-out users ─────────────────────────────────────────────────
+// ─── States ───────────────────────────────────────────────────────────────────
 
 class _SignInNudge extends StatelessWidget {
   const _SignInNudge();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.white24),
-            SizedBox(height: 16),
-            Text(
-              'Sign in to see your search history.',
+            Container(
+              width:  80,
+              height: 80,
+              decoration: BoxDecoration(
+                color:  AppTheme.surfaceHigh,
+                shape:  BoxShape.circle,
+                border: Border.all(color: AppTheme.surfaceBorder),
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                size:  36,
+                color: AppTheme.onSurfaceMid,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Sign in to view history',
+              style: TextStyle(
+                color:      AppTheme.onSurface,
+                fontSize:   17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your past searches sync across\nall your devices automatically.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 15),
+              style: TextStyle(
+                color:    AppTheme.onSurfaceMid,
+                fontSize: 14,
+                height:   1.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            Text(
+              'Go to Account tab to sign in',
+              style: TextStyle(
+                color:    AppTheme.primary.withValues(alpha: 0.9),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -81,26 +114,50 @@ class _SignInNudge extends StatelessWidget {
     );
   }
 }
-
-// ── Empty state ────────────────────────────────────────────────────────────────
 
 class _EmptyHistory extends StatelessWidget {
   const _EmptyHistory();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.white24),
-            SizedBox(height: 16),
-            Text(
-              'No searches yet.\nPoint your camera at a product to get started.',
+            Container(
+              width:  80,
+              height: 80,
+              decoration: BoxDecoration(
+                color:  AppTheme.surfaceHigh,
+                shape:  BoxShape.circle,
+                border: Border.all(color: AppTheme.surfaceBorder),
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size:  36,
+                color: AppTheme.onSurfaceMid,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No searches yet',
+              style: TextStyle(
+                color:      AppTheme.onSurface,
+                fontSize:   17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Point your camera at a product\nor type a description to get started.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 15),
+              style: TextStyle(
+                color:    AppTheme.onSurfaceMid,
+                fontSize: 14,
+                height:   1.5,
+              ),
             ),
           ],
         ),
@@ -109,11 +166,49 @@ class _EmptyHistory extends StatelessWidget {
   }
 }
 
-// ── History card ───────────────────────────────────────────────────────────────
+class _ErrorState extends StatelessWidget {
+  final String message;
+  const _ErrorState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded,
+                size: 48, color: AppTheme.onSurfaceMid),
+            const SizedBox(height: 16),
+            const Text(
+              'Could not load history',
+              style: TextStyle(
+                color:      AppTheme.onSurface,
+                fontSize:   16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: AppTheme.onSurfaceMid, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── History card ─────────────────────────────────────────────────────────────
 
 class _HistoryCard extends StatelessWidget {
-  final HistoryItem item;
+  final HistoryItem  item;
   final VoidCallback onTap;
+
   const _HistoryCard({required this.item, required this.onTap});
 
   @override
@@ -123,76 +218,107 @@ class _HistoryCard extends StatelessWidget {
         .take(3)
         .map((p) => p.thumbnail!)
         .toList();
-    final chips = item.tags.chips;
+    final chips = item.tags.chips.take(3).toList();
 
-    return Card(
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color:        AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Thumbnail stack (up to 3)
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: thumbs.isEmpty
-                    ? const Icon(Icons.shopping_bag_outlined,
-                        size: 36, color: Colors.white24)
-                    : _ThumbnailStack(urls: thumbs),
-              ),
-              const SizedBox(width: 12),
+        border:       Border.all(color: AppTheme.surfaceBorder),
+      ),
+      child: Material(
+        color:        Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap:        onTap,
+          borderRadius: BorderRadius.circular(12),
+          splashColor:  AppTheme.primary.withValues(alpha: 0.06),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Thumbnail stack
+                SizedBox(
+                  width:  72,
+                  height: 56,
+                  child:  thumbs.isEmpty
+                      ? Container(
+                          width:  56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color:        AppTheme.tagChipBg,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.shopping_bag_outlined,
+                            size:  26,
+                            color: AppTheme.onSurfaceMid,
+                          ),
+                        )
+                      : _ThumbnailStack(urls: thumbs),
+                ),
+                const SizedBox(width: 14),
 
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.tags.productName.isNotEmpty
-                          ? item.tags.productName
-                          : item.tags.searchQuery,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Colors.white,
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.tags.productName.isNotEmpty
+                            ? item.tags.productName
+                            : item.tags.searchQuery,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize:   14,
+                          color:      AppTheme.onSurface,
+                        ),
                       ),
-                    ),
-                    if (chips.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 4,
-                        children: chips
-                            .map((c) => Chip(
-                                  label: Text(c,
-                                      style: const TextStyle(fontSize: 10)),
-                                  padding: EdgeInsets.zero,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ))
-                            .toList(),
+                      if (chips.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Wrap(
+                          spacing: 4,
+                          children: chips
+                              .map((c) => _MiniChip(c))
+                              .toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 5),
+                      Text(
+                        '${item.results.length} result'
+                        '${item.results.length == 1 ? '' : 's'}',
+                        style: const TextStyle(
+                          color:    AppTheme.onSurfaceMid,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 4),
+                  ),
+                ),
+
+                // Time + chevron
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Text(
-                      '${item.results.length} result${item.results.length == 1 ? '' : 's'}',
+                      _timeAgo(item.createdAt),
                       style: const TextStyle(
-                          color: Colors.white38, fontSize: 12),
+                        color:    AppTheme.onSurfaceMid,
+                        fontSize: 11,
+                      ),
                     ),
+                    const SizedBox(height: 6),
+                    const Icon(Icons.chevron_right_rounded,
+                        size: 18, color: AppTheme.onSurfaceMid),
                   ],
                 ),
-              ),
-
-              // Time ago
-              Text(
-                _timeAgo(item.createdAt),
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -201,51 +327,76 @@ class _HistoryCard extends StatelessWidget {
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inSeconds < 60) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24)   return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inSeconds < 60)  return 'just now';
+    if (diff.inMinutes < 60)  return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24)    return '${diff.inHours}h ago';
+    if (diff.inDays < 7)      return '${diff.inDays}d ago';
+    return '${(diff.inDays / 7).floor()}w ago';
   }
 }
 
-// ── Thumbnail stack ────────────────────────────────────────────────────────────
+// ─── Mini chip ────────────────────────────────────────────────────────────────
+
+class _MiniChip extends StatelessWidget {
+  final String text;
+  const _MiniChip(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color:        AppTheme.tagChipBg,
+        borderRadius: BorderRadius.circular(20),
+        border:       Border.all(color: AppTheme.surfaceBorder),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color:    AppTheme.onSurfaceMid,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Thumbnail stack ──────────────────────────────────────────────────────────
 
 class _ThumbnailStack extends StatelessWidget {
-  final List<String> urls; // 1–3 URLs
+  final List<String> urls;
   const _ThumbnailStack({required this.urls});
 
   @override
   Widget build(BuildContext context) {
-    const size = 48.0;
-    final count = urls.length.clamp(1, 3);
-    const overlap = 12.0;
+    const sz      = 44.0;
+    const overlap = 10.0;
+    final count   = urls.length.clamp(1, 3);
 
     return SizedBox(
-      width: size + (count - 1) * overlap,
-      height: size,
+      width:  sz + (count - 1) * overlap,
+      height: sz,
       child: Stack(
-        children: List.generate(
-          count,
-          (i) => Positioned(
-            left: i * overlap,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: CachedNetworkImage(
-                imageUrl: urls[i],
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => Container(
-                  width: size,
-                  height: size,
-                  color: Colors.white10,
-                  child: const Icon(Icons.image_not_supported_outlined,
-                      size: 20, color: Colors.white24),
-                ),
+        children: List.generate(count, (i) => Positioned(
+          left: i * overlap.toDouble(),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: CachedNetworkImage(
+              imageUrl: urls[i],
+              width:    sz,
+              height:   sz,
+              fit:      BoxFit.cover,
+              errorWidget: (_, __, ___) => Container(
+                width:  sz,
+                height: sz,
+                color:  AppTheme.tagChipBg,
+                child:  const Icon(Icons.image_not_supported_outlined,
+                    size: 18, color: AppTheme.onSurfaceMid),
               ),
             ),
           ),
-        ),
+        )),
       ),
     );
   }
