@@ -13,6 +13,9 @@ class SearchState {
   final String? capturedImagePath;
   final String? capturedAudioPath;
 
+  /// Optional plain-text query entered via the keyboard search sheet.
+  final String? capturedText;
+
   /// Tags returned by the analyze step (used to build the final search query).
   final Map<String, dynamic>? analyzedTags;
 
@@ -25,6 +28,7 @@ class SearchState {
     this.errorMessage,
     this.capturedImagePath,
     this.capturedAudioPath,
+    this.capturedText,
     this.analyzedTags,
     this.pendingFilters,
   });
@@ -35,6 +39,7 @@ class SearchState {
     String? errorMessage,
     String? capturedImagePath,
     String? capturedAudioPath,
+    String? capturedText,
     Map<String, dynamic>? analyzedTags,
     List<SearchFilter>? pendingFilters,
   }) =>
@@ -44,13 +49,15 @@ class SearchState {
         errorMessage:      errorMessage      ?? this.errorMessage,
         capturedImagePath: capturedImagePath ?? this.capturedImagePath,
         capturedAudioPath: capturedAudioPath ?? this.capturedAudioPath,
+        capturedText:      capturedText      ?? this.capturedText,
         analyzedTags:      analyzedTags      ?? this.analyzedTags,
         pendingFilters:    pendingFilters    ?? this.pendingFilters,
       );
 
-  /// True when the user has captured at least one input (image or audio).
+  /// True when the user has at least one input ready.
   bool get hasInput =>
-      capturedImagePath != null || capturedAudioPath != null;
+      capturedImagePath != null || capturedAudioPath != null ||
+      (capturedText != null && capturedText!.isNotEmpty);
 }
 
 class SearchNotifier extends StateNotifier<SearchState> {
@@ -62,11 +69,21 @@ class SearchNotifier extends StateNotifier<SearchState> {
   void captureAudio(String path) =>
       state = state.copyWith(capturedAudioPath: path);
 
+  void captureText(String text) =>
+      state = state.copyWith(capturedText: text);
+
   void clearAudio() => state = SearchState(
         capturedImagePath: state.capturedImagePath,
+        capturedText:      state.capturedText,
       );
 
   void clearImage() => state = SearchState(
+        capturedAudioPath: state.capturedAudioPath,
+        capturedText:      state.capturedText,
+      );
+
+  void clearText() => state = SearchState(
+        capturedImagePath: state.capturedImagePath,
         capturedAudioPath: state.capturedAudioPath,
       );
 
@@ -78,7 +95,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
       final analyzeResult = await ApiClient.instance.analyzeSearch(
         imagePath: state.capturedImagePath,
         audioPath: state.capturedAudioPath,
+        query:     state.capturedText,
       );
+
       state = state.copyWith(
         status:         SearchStatus.analyzed,
         analyzedTags:   analyzeResult.tags,
@@ -97,22 +116,19 @@ class SearchNotifier extends StateNotifier<SearchState> {
   Future<void> submitWithFilters(List<SearchFilter> filters) async {
     state = state.copyWith(status: SearchStatus.processing);
     try {
-      // Append selected filter values to the base search query
+      // Build enriched query: base Gemini query + all selected filter values.
       final base = (state.analyzedTags?['searchQuery'] as String? ?? '').trim();
       final extras = filters
-          .where((f) => f.selectedValue != null && f.selectedValue!.isNotEmpty)
-          .map((f) => f.selectedValue!)
+          .expand((f) => f.selectedValues)
+          .where((v) => v.isNotEmpty)
           .toList();
 
       final enrichedQuery = extras.isEmpty ? base : '$base ${extras.join(' ')}';
 
+      // Do NOT re-send image or audio — that would trigger Gemini re-analysis
+      // and overwrite the filter-enriched query.
       final result = await ApiClient.instance.search(
-        query:      enrichedQuery.isEmpty ? null : enrichedQuery,
-        imagePath:  state.capturedImagePath,
-        audioPath:  state.capturedAudioPath,
-        // Pass the analyzed searchQuery as transcript so the backend skips
-        // re-transcribing audio and goes straight to Gemini refinement.
-        transcript: state.analyzedTags?['searchQuery'] as String?,
+        query: enrichedQuery.isEmpty ? null : enrichedQuery,
       );
       state = state.copyWith(status: SearchStatus.success, result: result);
     } catch (e) {

@@ -24,8 +24,10 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
   @override
   void initState() {
     super.initState();
-    // Deep-copy the filters so we own the selectedValue mutations locally
-    final raw = ref.read(searchProvider).pendingFilters ?? [];
+    final searchState = ref.read(searchProvider);
+
+    // Deep-copy the filters so we own the selectedValues mutations locally
+    final raw = searchState.pendingFilters ?? [];
     _filters = raw
         .map((f) => SearchFilter(
               key: f.key,
@@ -33,7 +35,7 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
               type: f.type,
               options: f.options,
               defaultValue: f.defaultValue,
-              selectedValue: f.selectedValue,
+              selectedValues: List<String>.from(f.selectedValues),
             ))
         .toList();
   }
@@ -84,7 +86,7 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
           if (_filters.isNotEmpty)
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 24, 20, 4),
+                padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
                 child: Text(
                   'Customize your search',
                   style: TextStyle(
@@ -102,8 +104,8 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
             delegate: SliverChildBuilderDelegate(
               (context, i) => _FilterRow(
                 filter: _filters[i],
-                onChanged: (val) =>
-                    setState(() => _filters[i].selectedValue = val),
+                onChanged: (newValues) =>
+                    setState(() => _filters[i].selectedValues = newValues),
               ),
               childCount: _filters.length,
             ),
@@ -265,7 +267,10 @@ class _Chip extends StatelessWidget {
 
 class _FilterRow extends StatelessWidget {
   final SearchFilter filter;
-  final ValueChanged<String?> onChanged;
+
+  /// Called with the full new list of selected values whenever the user
+  /// makes a selection. For dropdown, this is 0 or 1 items.
+  final void Function(List<String>) onChanged;
 
   const _FilterRow({required this.filter, required this.onChanged});
 
@@ -296,7 +301,7 @@ class _FilterRow extends StatelessWidget {
 
 class _DropdownFilter extends StatelessWidget {
   final SearchFilter filter;
-  final ValueChanged<String?> onChanged;
+  final void Function(List<String>) onChanged;
 
   const _DropdownFilter({required this.filter, required this.onChanged});
 
@@ -331,15 +336,16 @@ class _DropdownFilter extends StatelessWidget {
                 child: Text(opt.label),
               )),
         ],
-        onChanged: onChanged,
+        onChanged: (val) => onChanged(val == null ? [] : [val]),
       ),
     );
   }
 }
 
+/// Multi-select chips — each chip independently toggles in/out.
 class _ChipsFilter extends StatelessWidget {
   final SearchFilter filter;
-  final ValueChanged<String?> onChanged;
+  final void Function(List<String>) onChanged;
 
   const _ChipsFilter({required this.filter, required this.onChanged});
 
@@ -349,9 +355,17 @@ class _ChipsFilter extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: filter.options.map((opt) {
-        final selected = filter.selectedValue == opt.value;
+        final selected = filter.selectedValues.contains(opt.value);
         return GestureDetector(
-          onTap: () => onChanged(selected ? null : opt.value),
+          onTap: () {
+            final updated = List<String>.from(filter.selectedValues);
+            if (selected) {
+              updated.remove(opt.value);
+            } else {
+              updated.add(opt.value);
+            }
+            onChanged(updated);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

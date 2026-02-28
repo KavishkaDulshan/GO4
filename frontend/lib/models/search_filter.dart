@@ -11,7 +11,10 @@ class SearchFilterOption {
       );
 }
 
-/// A single AI-generated filter with a currently selected value.
+/// A single AI-generated filter with currently selected value(s).
+///
+/// Chips filters support multi-select via [selectedValues].
+/// Dropdown filters are single-select; [selectedValues] holds 0 or 1 entry.
 class SearchFilter {
   final String key;
   final String label;
@@ -21,8 +24,13 @@ class SearchFilter {
   final List<SearchFilterOption> options;
   final String? defaultValue;
 
-  /// Mutable — updated when the user taps a chip or picks a dropdown item.
-  String? selectedValue;
+  /// Mutable — holds all currently selected values.
+  /// Multi-select for chips; 0-or-1 entry for dropdown.
+  List<String> selectedValues;
+
+  /// Convenience getter: first selected value, or null if none selected.
+  String? get selectedValue =>
+      selectedValues.isEmpty ? null : selectedValues.first;
 
   SearchFilter({
     required this.key,
@@ -30,8 +38,9 @@ class SearchFilter {
     required this.type,
     required this.options,
     this.defaultValue,
-    this.selectedValue,
-  });
+    List<String>? selectedValues,
+  }) : selectedValues = selectedValues ??
+            (defaultValue != null ? [defaultValue] : <String>[]);
 
   factory SearchFilter.fromJson(Map<String, dynamic> json) {
     final opts = (json['options'] as List<dynamic>? ?? [])
@@ -46,7 +55,7 @@ class SearchFilter {
       type: json['type'] as String? ?? 'chips',
       options: opts,
       defaultValue: defaultVal,
-      selectedValue: defaultVal,
+      selectedValues: defaultVal != null ? [defaultVal] : <String>[],
     );
   }
 }

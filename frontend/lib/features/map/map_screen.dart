@@ -3,153 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/search_provider.dart';
-
-/// Maps a Gemini product category and product name to a specific retail store
-/// type that Google Places Text Search can actually find.
-///
-/// Examples:
-///   Electronics / "iPhone case"   → "phone accessories store"
-///   Puzzles     / "Rubik's Cube"  → "toy store"
-///   Footwear    / "running shoe"  → "shoe store"
-String _storeQueryFor(String category, String productName) {
-  final cat  = category.toLowerCase().trim();
-  final name = productName.toLowerCase().trim();
-
-  // ── Electronics & tech ──────────────────────────────────────────────────
-  if (_any(cat, ['mobile', 'phone', 'smartphone', 'iphone', 'android']) ||
-      _any(name, ['iphone', 'samsung', 'pixel', 'phone case', 'charger', 'cable'])) {
-    return 'mobile phone store';
-  }
-  if (_any(cat, ['laptop', 'computer', 'pc', 'notebook']) ||
-      _any(name, ['laptop', 'notebook', 'macbook', 'thinkpad', 'dell', 'hp laptop'])) {
-    return 'computer store';
-  }
-  if (_any(cat, ['headphone', 'audio', 'earphone', 'speaker']) ||
-      _any(name, ['headphone', 'earbuds', 'airpods', 'speaker'])) {
-    return 'electronics store';
-  }
-  if (_any(cat, ['camera', 'photography']) ||
-      _any(name, ['camera', 'lens', 'dslr', 'mirrorless'])) {
-    return 'camera store';
-  }
-  if (_any(cat, ['television', 'tv', 'monitor', 'display'])) {
-    return 'electronics store';
-  }
-  if (_any(cat, ['watch', 'smartwatch', 'wearable']) ||
-      _any(name, ['watch', 'smartwatch', 'fitbit', 'garmin'])) {
-    return 'watch store';
-  }
-  if (_any(cat, ['electronic', 'gadget', 'tech'])) {
-    return 'electronics store';
-  }
-
-  // ── Clothing & fashion ──────────────────────────────────────────────────
-  if (_any(cat, ['clothing', 'fashion', 'apparel', 'shirt', 'dress', 'jacket',
-      'trouser', 'jeans', 'sweater', 'hoodie', 't-shirt'])) {
-    return 'clothing store';
-  }
-  if (_any(cat, ['footwear', 'shoe', 'sneaker', 'boot', 'sandal', 'slipper']) ||
-      _any(name, ['shoe', 'sneaker', 'boot', 'slipper', 'sandal'])) {
-    return 'shoe store';
-  }
-  if (_any(cat, ['jewelry', 'jewellery', 'ring', 'necklace', 'bracelet']) ||
-      _any(name, ['ring', 'necklace', 'bracelet', 'earring', 'pendant'])) {
-    return 'jewelry store';
-  }
-  if (_any(cat, ['bag', 'handbag', 'backpack', 'purse', 'luggage'])) {
-    return 'luggage store';
-  }
-  if (_any(cat, ['sunglasses', 'eyewear', 'glasses', 'optical'])) {
-    return 'optical store';
-  }
-
-  // ── Home & furniture ────────────────────────────────────────────────────
-  if (_any(cat, ['furniture', 'sofa', 'table', 'chair', 'bed', 'shelf'])) {
-    return 'furniture store';
-  }
-  if (_any(cat, ['home decor', 'decoration', 'interior', 'lamp', 'curtain', 'rug'])) {
-    return 'home goods store';
-  }
-  if (_any(cat, ['kitchenware', 'cookware', 'kitchen', 'appliance']) ||
-      _any(name, ['pan', 'pot', 'knife', 'blender', 'microwave', 'kettle'])) {
-    return 'kitchen store';
-  }
-  if (_any(cat, ['bedding', 'pillow', 'mattress', 'duvet', 'linen'])) {
-    return 'home goods store';
-  }
-
-  // ── Toys & games ────────────────────────────────────────────────────────
-  if (_any(cat, ['toy', 'puzzle', 'game', 'lego', 'board game', 'action figure']) ||
-      _any(name, ["rubik", 'lego', 'puzzle', 'toy', 'doll', 'board game', 'jigsaw'])) {
-    return 'toy store';
-  }
-  if (_any(cat, ['video game', 'gaming', 'console', 'playstation', 'xbox', 'nintendo'])) {
-    return 'video game store';
-  }
-
-  // ── Sports & outdoors ───────────────────────────────────────────────────
-  if (_any(cat, ['sport', 'fitness', 'exercise', 'gym', 'workout', 'outdoor',
-      'camping', 'hiking', 'cycling', 'yoga', 'swimming'])) {
-    return 'sporting goods store';
-  }
-
-  // ── Beauty & health ─────────────────────────────────────────────────────
-  if (_any(cat, ['beauty', 'cosmetic', 'skincare', 'makeup', 'perfume', 'fragrance']) ||
-      _any(name, ['lipstick', 'foundation', 'serum', 'moisturizer', 'mascara'])) {
-    return 'beauty supply store';
-  }
-  if (_any(cat, ['health', 'medicine', 'supplement', 'vitamin', 'pharmacy'])) {
-    return 'pharmacy';
-  }
-
-  // ── Books & stationery ──────────────────────────────────────────────────
-  if (_any(cat, ['book', 'stationery', 'office supply', 'pen', 'notebook', 'paper'])) {
-    return 'bookstore';
-  }
-
-  // ── Food & grocery ──────────────────────────────────────────────────────
-  if (_any(cat, ['food', 'grocery', 'beverage', 'snack', 'drink', 'coffee', 'tea'])) {
-    return 'grocery store';
-  }
-
-  // ── Pet supplies ────────────────────────────────────────────────────────
-  if (_any(cat, ['pet', 'dog', 'cat', 'aquarium', 'bird'])) {
-    return 'pet store';
-  }
-
-  // ── Music ────────────────────────────────────────────────────────────────
-  if (_any(cat, ['music', 'musical instrument', 'guitar', 'piano', 'drum'])) {
-    return 'music store';
-  }
-
-  // ── Art & craft ─────────────────────────────────────────────────────────
-  if (_any(cat, ['art', 'craft', 'hobby', 'drawing', 'painting', 'sewing'])) {
-    return 'art supply store';
-  }
-
-  // ── Automotive ──────────────────────────────────────────────────────────
-  if (_any(cat, ['automotive', 'car', 'vehicle', 'motorcycle']) ||
-      _any(name, ['car', 'tyre', 'tire', 'lubricant', 'motor oil'])) {
-    return 'auto parts store';
-  }
-
-  // ── Generic fallback ────────────────────────────────────────────────────
-  // Use the category name if short enough for a clear Places query
-  if (cat.isNotEmpty && cat.length <= 18 && !cat.contains(' ')) {
-    return '$category store';
-  }
-
-  // Absolute fallback — just find local shops
-  return 'retail store near me';
-}
-
-/// Returns true if [text] contains any of [keywords].
-bool _any(String text, List<String> keywords) =>
-    keywords.any((k) => text.contains(k));
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -163,9 +21,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _locationDialogShown = false;
 
   // Places state
-  Set<Marker>  _markers          = {};
-  bool         _isLoadingPlaces  = false;
-  int          _placeCount       = -1; // -1 = not yet searched
+  Set<Marker>                 _markers          = {};
+  List<Map<String, dynamic>>  _places           = [];
+  bool                        _isLoadingPlaces  = false;
+  int                         _placeCount       = -1; // -1 = not yet searched
 
   @override
   Widget build(BuildContext context) {
@@ -219,12 +78,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Display label: show product name so user knows what they last searched
     final displayQuery = result?.tags.productName ?? result?.tags.searchQuery ?? '';
 
-    // Places query: map category + productName to a specific retail store type.
-    // This beats sending the raw search query to Google Places.
-    final placesQuery = _storeQueryFor(
-      result?.tags.category ?? '',
-      result?.tags.productName ?? '',
-    );
+    // Raw tags sent to backend — it resolves the right store type server-side
+    final placeCategory    = result?.tags.category    ?? '';
+    final placeProductName = result?.tags.productName ?? displayQuery;
 
     return Scaffold(
       body: Stack(
@@ -277,7 +133,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             DraggableScrollableSheet(
               initialChildSize: 0.20,
               minChildSize: 0.12,
-              maxChildSize: 0.45,
+              maxChildSize: 0.65,
               builder: (ctx, scrollCtrl) => Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E1E2E),
@@ -314,33 +170,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Place count badge (after search)
-                    if (_placeCount == 0)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Center(
-                          child: Text(
-                            'No stores found nearby.',
-                            style: TextStyle(
-                                color: Colors.white38, fontSize: 13),
-                          ),
-                        ),
-                      )
-                    else if (_placeCount > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Center(
-                          child: Text(
-                            '$_placeCount store${_placeCount == 1 ? '' : 's'} found nearby',
-                            style: const TextStyle(
-                              color: AppTheme.accent,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-
                     // Find nearby stores button
                     ElevatedButton.icon(
                       icon: _isLoadingPlaces
@@ -353,11 +182,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           : const Icon(Icons.store_mall_directory_outlined),
                       label: Text(_isLoadingPlaces
                           ? 'Searching…'
-                          : 'Find nearby stores'),
+                          : _placeCount < 0
+                              ? 'Find nearby stores'
+                              : 'Refresh stores'),
                       onPressed: _isLoadingPlaces
                           ? null
-                          : () => _loadNearbyPlaces(position, placesQuery),
+                          : () => _loadNearbyPlaces(
+                                position,
+                                placeCategory,
+                                placeProductName,
+                              ),
                     ),
+
+                    // Store list
+                    if (_placeCount == 0) ...[
+                      const SizedBox(height: 12),
+                      const Center(
+                        child: Text(
+                          'No stores found nearby.',
+                          style: TextStyle(
+                              color: Colors.white38, fontSize: 13),
+                        ),
+                      ),
+                    ] else if (_places.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        '$_placeCount store${_placeCount == 1 ? '' : 's'} nearby',
+                        style: const TextStyle(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ..._places.map(
+                        (p) => _StoreCard(
+                          place: p,
+                          onDirections: () => _getDirections(p),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -367,17 +231,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  Future<void> _loadNearbyPlaces(LatLng? position, String query) async {
+  Future<void> _loadNearbyPlaces(
+      LatLng? position, String category, String productName) async {
     if (_isLoadingPlaces) return;
     setState(() {
       _isLoadingPlaces = true;
       _markers = {};
+      _places  = [];
       _placeCount = -1;
     });
 
     try {
       final places = await ApiClient.instance.getNearbyPlaces(
-        query: query,
+        category:    category,
+        productName: productName,
         lat: position?.latitude,
         lng: position?.longitude,
       );
@@ -403,7 +270,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
       if (mounted) {
         setState(() {
-          _markers = newMarkers;
+          _markers    = newMarkers;
+          _places     = places;
           _placeCount = newMarkers.length;
           _isLoadingPlaces = false;
         });
@@ -440,5 +308,291 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         );
       }
     }
+  }
+
+  // ── Directions ─────────────────────────────────────────────────────────────
+
+  Future<void> _getDirections(Map<String, dynamic> place) async {
+    final lat  = (place['lat']  as num?)?.toDouble();
+    final lng  = (place['lng']  as num?)?.toDouble();
+    final name = Uri.encodeComponent(place['name'] as String? ?? 'store');
+
+    if (lat == null || lng == null) return;
+
+    final geoUri  = Uri.parse('geo:$lat,$lng?q=$name');
+    final mapsUri = Uri.parse('https://maps.google.com/?q=$name&ll=$lat,$lng');
+
+    if (await canLaunchUrl(geoUri)) {
+      await launchUrl(geoUri);
+    } else {
+      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+    }
+  }
+}
+
+// ─── Store card ───────────────────────────────────────────────────────────────
+
+class _StoreCard extends StatefulWidget {
+  final Map<String, dynamic> place;
+  final VoidCallback onDirections;
+
+  const _StoreCard({required this.place, required this.onDirections});
+
+  @override
+  State<_StoreCard> createState() => _StoreCardState();
+}
+
+class _StoreCardState extends State<_StoreCard> {
+  bool _expanded = false;
+  bool _loadingDetails = false;
+  Map<String, dynamic>? _details;
+
+  Future<void> _loadDetails() async {
+    final placeId = widget.place['placeId'] as String?;
+    if (placeId == null || _details != null) return;
+    setState(() => _loadingDetails = true);
+    try {
+      final d = await ApiClient.instance.getPlaceDetails(placeId);
+      if (mounted) setState(() { _details = d; _loadingDetails = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingDetails = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name    = widget.place['name']    as String? ?? 'Store';
+    final address = widget.place['address'] as String? ?? '';
+    final rating  = (widget.place['rating'] as num?)?.toDouble();
+    final openNow = (_details?['openNow'] ?? widget.place['openNow']) as bool?;
+
+    final weekdayText = (_details?['weekdayText'] as List<dynamic>?)
+        ?.whereType<String>()
+        .toList();
+    final phone   = _details?['phone']   as String?;
+    final website = _details?['website'] as String?;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Main row ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                // Store info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (address.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          address,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 11),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          // Open / closed badge
+                          if (openNow != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (openNow ? Colors.green : Colors.red)
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                openNow ? 'Open' : 'Closed',
+                                style: TextStyle(
+                                  color: openNow ? Colors.green : Colors.red,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          if (openNow != null && rating != null)
+                            const SizedBox(width: 6),
+                          // Rating
+                          if (rating != null) ...[
+                            const Icon(Icons.star,
+                                size: 12, color: Colors.amber),
+                            const SizedBox(width: 2),
+                            Text(
+                              rating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 11),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Action buttons
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.accent,
+                        side: const BorderSide(color: AppTheme.accent, width: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.directions, size: 14),
+                      label: const Text('Directions',
+                          style: TextStyle(fontSize: 12)),
+                      onPressed: widget.onDirections,
+                    ),
+                    const SizedBox(height: 6),
+                    // Show/hide hours button
+                    if (widget.place['placeId'] != null)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _expanded = !_expanded);
+                          if (_expanded) _loadDetails();
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _expanded ? 'Hide' : 'Hours',
+                              style: const TextStyle(
+                                  color: Colors.white38, fontSize: 11),
+                            ),
+                            Icon(
+                              _expanded
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              color: Colors.white38,
+                              size: 14,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ── Expanded details ──────────────────────────────────────────────
+          if (_expanded) ...[
+            Divider(
+                height: 1,
+                color: Colors.white.withValues(alpha: 0.08)),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: _loadingDetails
+                  ? const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white38),
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Phone
+                        if (phone != null) ...[
+                          Row(
+                            children: [
+                              const Icon(Icons.phone,
+                                  size: 13, color: Colors.white38),
+                              const SizedBox(width: 6),
+                              Text(
+                                phone,
+                                style: const TextStyle(
+                                    color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        // Website
+                        if (website != null) ...[
+                          Row(
+                            children: [
+                              const Icon(Icons.language,
+                                  size: 13, color: Colors.white38),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  website,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Colors.white54, fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        // Weekday hours
+                        if (weekdayText != null && weekdayText.isNotEmpty) ...[
+                          const Text(
+                            'Opening hours',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          ...weekdayText.map((line) => Padding(
+                                padding:
+                                    const EdgeInsets.only(bottom: 2),
+                                child: Text(
+                                  line,
+                                  style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 11),
+                                ),
+                              )),
+                        ] else if (!_loadingDetails)
+                          const Text(
+                            'Hours not available',
+                            style: TextStyle(
+                                color: Colors.white24, fontSize: 11),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

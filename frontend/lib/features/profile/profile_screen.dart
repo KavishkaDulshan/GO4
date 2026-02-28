@@ -1,22 +1,61 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/wishlist_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
+    final auth         = ref.watch(authProvider);
+    final wishlistCount = ref.watch(wishlistProvider).length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: auth.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : auth.isSignedIn
-              ? _SignedInView(auth: auth, ref: ref)
-              : _SignedOutView(ref: ref, errorMessage: auth.errorMessage),
+      body: Column(
+        children: [
+          Expanded(
+            child: auth.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : auth.isSignedIn
+                    ? _SignedInView(auth: auth, ref: ref)
+                    : _SignedOutView(ref: ref, errorMessage: auth.errorMessage),
+          ),
+          const Divider(height: 1, color: Colors.white12),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline, color: Colors.pinkAccent),
+            title: const Text('Saved Items'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (wishlistCount > 0)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.pinkAccent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$wishlistCount',
+                      style: const TextStyle(
+                          color: Colors.pinkAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, color: Colors.white38),
+              ],
+            ),
+            onTap: () => context.push('/wishlist'),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

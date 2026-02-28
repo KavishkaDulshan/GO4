@@ -88,6 +88,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  // ── Text search bottom sheet ──────────────────────────────────────────────
+
+  Future<void> _openTextSearch() async {
+    final ctrl = TextEditingController();
+    final submitted = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Search by text',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'e.g. red running shoes size 10',
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white70),
+                  onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+                ),
+              ),
+              onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (submitted != null && submitted.isNotEmpty && mounted) {
+      ref.read(searchProvider.notifier).captureText(submitted);
+      _goSearch();
+    }
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   void _goSearch() {
@@ -107,7 +169,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final state = ref.watch(searchProvider);
     final hasImage = state.capturedImagePath != null;
     final hasAudio = state.capturedAudioPath != null;
-    final hasInput = hasImage || hasAudio;
+    final hasText  = state.capturedText != null && state.capturedText!.isNotEmpty;
+    final hasInput = hasImage || hasAudio || hasText;
 
     final instruction = _isRecording
         ? 'Release to finish recording…'
@@ -117,7 +180,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ? 'Image captured · Hold mic to add voice hint'
                 : hasAudio
                     ? 'Voice recorded · Tap camera for photo too'
-                    : 'Tap camera · Hold mic · Or pick from gallery';
+                    : hasText
+                        ? 'Text ready — tap Search!'
+                        : 'Tap camera · Hold mic · Or type your query';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -203,6 +268,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ref.read(searchProvider.notifier).clearAudio(),
                   ),
                 ],
+                if (hasText) ...[
+                  if (hasImage || hasAudio) const SizedBox(height: 8),
+                  _InputBadge(
+                    icon: Icons.keyboard,
+                    label: 'Text',
+                    color: Colors.purple,
+                    onClear: () =>
+                        ref.read(searchProvider.notifier).clearText(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -284,6 +359,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     icon: Icons.photo_library_outlined,
                     label: 'Gallery',
                     hasBadge: false,
+                  ),
+                ),
+
+                // Text search
+                GestureDetector(
+                  onTap: _openTextSearch,
+                  child: _ControlButton(
+                    icon: Icons.keyboard_alt_outlined,
+                    label: 'Type',
+                    hasBadge: hasText,
                   ),
                 ),
               ],

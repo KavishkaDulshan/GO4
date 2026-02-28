@@ -5,23 +5,69 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product.dart';
 import '../../providers/search_provider.dart';
+import '../../providers/wishlist_provider.dart';
 
-class ResultsScreen extends ConsumerWidget {
+// ── Sort options ──────────────────────────────────────────────────────────────
+
+enum _SortOption {
+  relevance('Relevance'),
+  priceLow('Price: Low → High'),
+  priceHigh('Price: High → Low'),
+  rating('Rating');
+
+  final String label;
+  const _SortOption(this.label);
+}
+
+double _parsePrice(String? price) {
+  if (price == null || price.isEmpty) return double.infinity;
+  final cleaned = price.replaceAll(RegExp(r'[^\d.]'), '');
+  return double.tryParse(cleaned) ?? double.infinity;
+}
+
+List<Product> _sorted(List<Product> products, _SortOption opt) {
+  final copy = List.of(products);
+  switch (opt) {
+    case _SortOption.relevance:
+      return copy;
+    case _SortOption.priceLow:
+      copy.sort((a, b) => _parsePrice(a.price).compareTo(_parsePrice(b.price)));
+    case _SortOption.priceHigh:
+      copy.sort((a, b) => _parsePrice(b.price).compareTo(_parsePrice(a.price)));
+    case _SortOption.rating:
+      copy.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+  }
+  return copy;
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+
+class ResultsScreen extends ConsumerStatefulWidget {
   const ResultsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(searchProvider);
+  ConsumerState<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+  _SortOption _sort = _SortOption.relevance;
+
+  @override
+  Widget build(BuildContext context) {
+    final state  = ref.watch(searchProvider);
     final result = state.result;
 
     if (result == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Results')),
         body: const Center(
-          child: Text('No results yet.', style: TextStyle(color: Colors.white54)),
+          child: Text('No results yet.',
+              style: TextStyle(color: Colors.white54)),
         ),
       );
     }
+
+    final products = _sorted(result.results, _sort);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +77,33 @@ class ResultsScreen extends ConsumerWidget {
           onPressed: () => context.go('/'),
         ),
         actions: [
-          // Navigate to Map tab while keeping search state in provider
+          // Sort menu
+          PopupMenuButton<_SortOption>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Sort',
+            initialValue: _sort,
+            onSelected: (opt) => setState(() => _sort = opt),
+            itemBuilder: (_) => _SortOption.values
+                .map((opt) => PopupMenuItem(
+                      value: opt,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _sort == opt
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off,
+                            size: 16,
+                            color: _sort == opt
+                                ? AppTheme.primary
+                                : Colors.white38,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(opt.label),
+                        ],
+                      ),
+                    ))
+                .toList(),
+          ),
           IconButton(
             icon: const Icon(Icons.map_outlined),
             tooltip: 'View on Map',
@@ -45,8 +117,8 @@ class ResultsScreen extends ConsumerWidget {
                   height: 44,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     children: result.tags.chips
                         .map((c) => Padding(
                               padding: const EdgeInsets.only(right: 8),
@@ -58,17 +130,52 @@ class ResultsScreen extends ConsumerWidget {
               )
             : null,
       ),
-      body: result.results.isEmpty
-          ? _EmptyResults(query: result.tags.searchQuery)
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: result.results.length,
-              itemBuilder: (ctx, i) =>
-                  _ProductCard(product: result.results[i]),
+      body: Column(
+        children: [
+          // Active sort indicator bar
+          if (_sort != _SortOption.relevance)
+            Container(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.sort, size: 14, color: AppTheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Sorted by: ${_sort.label}',
+                    style: const TextStyle(
+                        color: AppTheme.primary, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () =>
+                        setState(() => _sort = _SortOption.relevance),
+                    child: const Text('Reset',
+                        style:
+                            TextStyle(color: Colors.white38, fontSize: 12)),
+                  ),
+                ],
+              ),
             ),
+
+          Expanded(
+            child: products.isEmpty
+                ? _EmptyResults(query: result.tags.searchQuery)
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: products.length,
+                    itemBuilder: (ctx, i) =>
+                        _ProductCard(product: products[i]),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyResults extends StatelessWidget {
   final String query;
@@ -85,7 +192,7 @@ class _EmptyResults extends StatelessWidget {
             const Icon(Icons.search_off, size: 64, color: Colors.white24),
             const SizedBox(height: 16),
             Text(
-              'No results found for "$query"\nin your region.',
+              'No results found for "$query".',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white54, fontSize: 15),
             ),
@@ -102,13 +209,21 @@ class _EmptyResults extends StatelessWidget {
   }
 }
 
-class _ProductCard extends StatelessWidget {
+// ─── Product card ─────────────────────────────────────────────────────────────
+
+class _ProductCard extends ConsumerWidget {
   final Product product;
   const _ProductCard({required this.product});
 
   @override
-  Widget build(BuildContext context) {
-    final img = product.displayImage;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final img    = product.displayImage;
+    final isSaved = ref.watch(
+      wishlistProvider.select(
+        (list) => list.any((item) => WishlistNotifier.sameProduct(item.product, product)),
+      ),
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -133,8 +248,7 @@ class _ProductCard extends StatelessWidget {
                             child: SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           ),
                           errorWidget: (_, __, ___) => const Icon(
@@ -165,7 +279,6 @@ class _ProductCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Price row: show sale price + strikethrough original
                     if (product.price != null)
                       Row(
                         children: [
@@ -232,17 +345,24 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
 
-              // Right column: verified badge + detail arrow
-              const Column(
+              // Right column: wishlist heart + verified + chevron
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _VerifiedBadge(),
-                  SizedBox(height: 6),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: Colors.white38,
+                  GestureDetector(
+                    onTap: () =>
+                        ref.read(wishlistProvider.notifier).toggle(product),
+                    child: Icon(
+                      isSaved ? Icons.favorite : Icons.favorite_border,
+                      size: 22,
+                      color: isSaved ? Colors.pinkAccent : Colors.white38,
+                    ),
                   ),
+                  const SizedBox(height: 6),
+                  const _VerifiedBadge(),
+                  const SizedBox(height: 6),
+                  const Icon(Icons.chevron_right,
+                      size: 18, color: Colors.white38),
                 ],
               ),
             ],

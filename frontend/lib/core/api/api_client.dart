@@ -223,28 +223,41 @@ class ApiClient {
 
   // ── Places ──────────────────────────────────────────────────────────────────
 
-  /// Find nearby stores for a product query.
+  /// Find nearby stores relevant to a product.
   ///
-  /// [query]  – product/category name (e.g. "blue denim jacket")
-  /// [lat]    – device latitude (optional but improves relevance)
-  /// [lng]    – device longitude (optional but improves relevance)
-  /// [radius] – search radius in metres (default 5000)
+  /// Backend resolves [category] + [productName] into the correct Google Places
+  /// type (e.g. `electronics_store`) and searches via Nearby Search API with
+  /// `rankby=distance` — returning only real stores of that type, closest first.
   ///
   /// Returns a list of place maps:
-  ///   { placeId, name, address, lat, lng, rating, types }
+  ///   { placeId, name, address, lat, lng, rating, openNow, types }
   Future<List<Map<String, dynamic>>> getNearbyPlaces({
-    required String query,
+    required String category,
+    required String productName,
     double? lat,
     double? lng,
-    int radius = 5000,
   }) async {
-    final params = <String, dynamic>{'query': query, 'radius': radius};
+    final params = <String, dynamic>{
+      'category':    category,
+      'productName': productName,
+    };
     if (lat != null) params['lat'] = lat;
     if (lng != null) params['lng'] = lng;
 
     final res = await _dio.get('/api/v1/places/nearby', queryParameters: params);
     final data = res.data as Map<String, dynamic>;
     return (data['places'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  /// Fetch opening hours, phone, website for a single place.
+  ///
+  /// Returns: { openNow, weekdayText, phone, website, mapsUrl }
+  Future<Map<String, dynamic>> getPlaceDetails(String placeId) async {
+    final res = await _dio.get(
+      '/api/v1/places/details',
+      queryParameters: {'placeId': placeId},
+    );
+    return res.data as Map<String, dynamic>;
   }
 
   // ── Product Enrichment ──────────────────────────────────────────────────────

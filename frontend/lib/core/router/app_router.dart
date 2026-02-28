@@ -7,6 +7,7 @@ import '../../features/map/map_screen.dart';
 import '../../features/history/history_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/product/product_detail_screen.dart';
+import '../../features/wishlist/wishlist_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../models/product.dart';
 
@@ -27,6 +28,7 @@ final appRouter = GoRouter(
     GoRoute(path: '/processing', builder: (_, __) => const ProcessingScreen()),
     GoRoute(path: '/filters',    builder: (_, __) => const SearchFiltersScreen()),
     GoRoute(path: '/results',    builder: (_, __) => const ResultsScreen()),
+    GoRoute(path: '/wishlist',   builder: (_, __) => const WishlistScreen()),
     GoRoute(
       path: '/product',
       builder: (_, state) {
