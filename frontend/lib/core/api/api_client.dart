@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../models/history_item.dart';
 import '../../models/product_enrichment.dart';
 import '../../models/product_review.dart';
+import '../../models/search_filter.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
@@ -144,7 +145,50 @@ class ApiClient {
     return SearchResult.fromJson(raw);
   }
 
-  // ── Auth ────────────────────────────────────────────────────────────────────
+  // ── Analyze (step 1 of the 2-step search flow) ───────────────────────────
+
+  /// Send image / audio inputs to the analyze endpoint.
+  /// Returns AI-detected tags + smart search filters.
+  /// Does NOT call Serper (no product list).
+  Future<AnalyzeResult> analyzeSearch({
+    String? imagePath,
+    String? audioPath,
+    String? query,
+    String? transcript,
+  }) async {
+    final formData = FormData();
+
+    if (imagePath != null) {
+      formData.files.add(MapEntry(
+        'image',
+        await MultipartFile.fromFile(
+          imagePath,
+          filename: File(imagePath).uri.pathSegments.last,
+        ),
+      ));
+    }
+    if (audioPath != null) {
+      formData.files.add(MapEntry(
+        'audio',
+        await MultipartFile.fromFile(
+          audioPath,
+          filename: File(audioPath).uri.pathSegments.last,
+        ),
+      ));
+    }
+    if (query      != null && query.isNotEmpty)      formData.fields.add(MapEntry('query',      query));
+    if (transcript != null && transcript.isNotEmpty) formData.fields.add(MapEntry('transcript', transcript));
+
+    final res = await _dio.post(
+      '/api/v1/analyze',
+      data: formData,
+      options: Options(
+        contentType: 'multipart/form-data',
+        receiveTimeout: const Duration(seconds: 60),
+      ),
+    );
+    return AnalyzeResult.fromJson(res.data as Map<String, dynamic>);
+  }
 
   /// Inject or remove the Bearer token used for authenticated requests.
   void setAuthToken(String? token) {
@@ -168,7 +212,10 @@ class ApiClient {
 
   /// Fetch the signed-in user's search history (up to 50 items).
   Future<List<HistoryItem>> getHistory() async {
-    final res = await _dio.get('/api/v1/history');
+    final res = await _dio.get(
+      '/api/v1/history',
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    );
     return (res.data as List<dynamic>)
         .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -176,28 +223,41 @@ class ApiClient {
 
   // ── Places ──────────────────────────────────────────────────────────────────
 
-  /// Find nearby stores for a product query.
+  /// Find nearby stores relevant to a product.
   ///
-  /// [query]  – product/category name (e.g. "blue denim jacket")
-  /// [lat]    – device latitude (optional but improves relevance)
-  /// [lng]    – device longitude (optional but improves relevance)
-  /// [radius] – search radius in metres (default 5000)
+  /// Backend resolves [category] + [productName] into the correct Google Places
+  /// type (e.g. `electronics_store`) and searches via Nearby Search API with
+  /// `rankby=distance` — returning only real stores of that type, closest first.
   ///
   /// Returns a list of place maps:
-  ///   { placeId, name, address, lat, lng, rating, types }
+  ///   { placeId, name, address, lat, lng, rating, openNow, types }
   Future<List<Map<String, dynamic>>> getNearbyPlaces({
-    required String query,
+    required String category,
+    required String productName,
     double? lat,
     double? lng,
-    int radius = 5000,
   }) async {
-    final params = <String, dynamic>{'query': query, 'radius': radius};
+    final params = <String, dynamic>{
+      'category':    category,
+      'productName': productName,
+    };
     if (lat != null) params['lat'] = lat;
     if (lng != null) params['lng'] = lng;
 
     final res = await _dio.get('/api/v1/places/nearby', queryParameters: params);
     final data = res.data as Map<String, dynamic>;
     return (data['places'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  /// Fetch opening hours, phone, website for a single place.
+  ///
+  /// Returns: { openNow, weekdayText, phone, website, mapsUrl }
+  Future<Map<String, dynamic>> getPlaceDetails(String placeId) async {
+    final res = await _dio.get(
+      '/api/v1/places/details',
+      queryParameters: {'placeId': placeId},
+    );
+    return res.data as Map<String, dynamic>;
   }
 
   // ── Product Enrichment ──────────────────────────────────────────────────────

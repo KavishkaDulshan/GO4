@@ -6,17 +6,21 @@ const SERPER_ENDPOINT = 'https://google.serper.dev/shopping';
 /**
  * Query Google Shopping via Serper.dev.
  *
- * @param {string} searchQuery - Product search query from Gemini.
+ * @param {string} searchQuery - Product search query.
  * @param {object} opts
- * @param {string} [opts.gl='us']  Country code.
- * @param {string} [opts.hl='en']  Language.
- * @param {number} [opts.num=20]   Max results to return.
+ * @param {string} [opts.gl='us']       Country code (e.g. 'lk', 'in', 'gb').
+ * @param {string} [opts.hl='en']       Language.
+ * @param {number} [opts.num=40]        Max results to request.
+ * @param {string} [opts.location]      City/region string for localised results.
  * @returns {Promise<Array>} Normalised product list
  */
-async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 20 } = {}) {
+async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 40, location } = {}) {
+  const body = { q: searchQuery, gl, hl, num };
+  if (location) body.location = location;
+
   const response = await axios.post(
     SERPER_ENDPOINT,
-    { q: searchQuery, gl, hl, num },
+    body,
     {
       headers: {
         'X-API-KEY': process.env.SERPER_API_KEY,
@@ -42,16 +46,14 @@ async function searchShopping(searchQuery, { gl = 'us', hl = 'en', num = 20 } = 
   }
 
   const mapped = shopping.map((item) => {
-    // Resolve an HTTP image URL — discard base64 data URIs (CachedNetworkImage can't use them)
     const imageUrl =
-      safeUrl(item.imageUrl)        // Serper Shopping primary image
-      ?? safeUrl(item.image)        // alternate key
-      ?? safeUrl(item.thumbnailUrl) // rare variant
+      safeUrl(item.imageUrl)
+      ?? safeUrl(item.image)
+      ?? safeUrl(item.thumbnailUrl)
       ?? null;
 
     const thumbnail = safeUrl(item.thumbnail) ?? imageUrl;
 
-    // Parse extensions/features array — Serper returns strings like "Brand: Nike"
     const extensions = Array.isArray(item.extensions)
       ? item.extensions.filter((e) => typeof e === 'string')
       : [];

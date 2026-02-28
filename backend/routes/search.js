@@ -56,15 +56,10 @@ router.post('/', async (req, res, next) => {
     return res.status(400).json({ error: 'Provide at least one of: image, audio, or query.' });
   }
 
-  // Collect paths for cleanup regardless of success/failure
-  const tempFiles = [
-    imageFile?.path,
-    audioFile?.path,
-  ].filter(Boolean);
-
+  const tempFiles = [imageFile?.path, audioFile?.path].filter(Boolean);
   const cleanup = () => {
     tempFiles.forEach((p) => {
-      try { fs.unlinkSync(p); } catch (_) { /* already gone or never written */ }
+      try { fs.unlinkSync(p); } catch (_) { }
     });
   };
 
@@ -91,7 +86,6 @@ router.post('/', async (req, res, next) => {
       tags = await analyzeImage(imageFile.path, mimeType, voiceHint);
       console.log(`[Search] Gemini ✅  tags: ${JSON.stringify(tags)}`);
     } else {
-      // Voice-only or text-only — use transcript as the search query
       const textQuery = transcript ?? query ?? '';
       console.log(`[Search] Voice/text-only → query="${textQuery}"`);
       tags = {
@@ -113,9 +107,47 @@ router.post('/', async (req, res, next) => {
       });
     }
 
+    // ── Step 3b: Optional city/country hint → Serper gl + location ──────────
+    // Scans the raw user input for well-known city names to bias results
+    // toward a regional Google Shopping index.  Does not restrict results
+    // to local websites — the Shopping API is always used globally.
+    const rawInput = (transcript ?? query ?? '').toLowerCase();
+
+    let searchGl = 'us';
+    let searchLocation = '';
+
+    const CITY_GL = {
+      colombo:   { gl: 'lk', location: 'Colombo, Sri Lanka' },
+      kandy:     { gl: 'lk', location: 'Kandy, Sri Lanka' },
+      delhi:     { gl: 'in', location: 'New Delhi, India' },
+      mumbai:    { gl: 'in', location: 'Mumbai, India' },
+      bangalore: { gl: 'in', location: 'Bangalore, India' },
+      london:    { gl: 'gb', location: 'London, United Kingdom' },
+      dubai:     { gl: 'ae', location: 'Dubai, UAE' },
+      sydney:    { gl: 'au', location: 'Sydney, Australia' },
+      toronto:   { gl: 'ca', location: 'Toronto, Canada' },
+      singapore: { gl: 'sg', location: 'Singapore' },
+      bangkok:   { gl: 'th', location: 'Bangkok, Thailand' },
+    };
+    for (const [city, info] of Object.entries(CITY_GL)) {
+      if (rawInput.includes(city)) {
+        searchGl       = info.gl;
+        searchLocation = info.location;
+        break;
+      }
+    }
+
+    const serperOpts = {
+      gl: searchGl,
+      ...(searchLocation && { location: searchLocation }),
+    };
+    if (searchLocation) {
+      console.log(`[Search] City hint → gl="${searchGl}" location="${searchLocation}"`);
+    }
+
     // ── Step 4: Google Shopping via Serper ───────────────────────────────────
-    console.log(`[Search] Serper → "${searchQuery}"`);
-    const results = await searchShopping(searchQuery);
+    console.log(`[Search] Shopping → "${searchQuery}"`);
+    const results = await searchShopping(searchQuery, serperOpts);
     console.log(`[Search] Serper ✅  ${results.length} result(s)`);
 
     // ── Step 5: Persist to MongoDB ───────────────────────────────────────────
