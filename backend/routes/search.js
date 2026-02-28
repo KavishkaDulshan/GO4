@@ -5,6 +5,7 @@ const { analyzeImage } = require('../services/geminiService');
 const { searchShopping } = require('../services/serperService');
 const { transcribeAudio } = require('../services/transcriptionService');
 const SearchHistory = require('../models/SearchHistory');
+const { learnFromSearch } = require('../services/preferenceLearningService');
 
 const router = express.Router();
 
@@ -165,6 +166,11 @@ router.post('/', async (req, res, next) => {
       console.log(`[Search] DB ✅  saved → ${searchId}`);
     } catch (dbErr) {
       console.warn('[Search] DB ⚠️  history save failed (non-fatal):', dbErr.message);
+    }
+
+    // ── Step 6: Learn from this search (non-blocking, errors swallowed) ──────
+    if (req.user?.sub) {
+      learnFromSearch(req.user.sub, tags, results).catch(() => {});
     }
 
     cleanup();

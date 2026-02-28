@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,15 +20,18 @@ Future<void> main() async {
   );
 }
 
-class Go4App extends StatelessWidget {
+class Go4App extends ConsumerWidget {
   const Go4App({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
     return MaterialApp.router(
-      title: 'Go4',
-      theme: AppTheme.dark,
-      routerConfig: appRouter,
+      title:                      'Go4',
+      theme:                      AppTheme.light,
+      darkTheme:                  AppTheme.dark,
+      themeMode:                  themeMode,
+      routerConfig:               appRouter,
       debugShowCheckedModeBanner: false,
     );
   }

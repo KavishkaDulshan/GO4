@@ -307,4 +307,24 @@ class ApiClient {
     );
     return ProductReviewResult.fromJson(res.data as Map<String, dynamic>);
   }
+
+  // ── Recommendations ─────────────────────────────────────────────────────────
+
+  /// Fetch personalised product recommendations + learned preference profile.
+  ///
+  /// Requires a valid JWT (from [setAuthToken]).
+  /// Response: { preferences, recommendations: [Product], query, message? }
+  Future<Map<String, dynamic>> getRecommendations() async {
+    final res = await _dio.get(
+      '/api/v1/recommendations',
+      options: Options(receiveTimeout: const Duration(seconds: 45)),
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Fetch just the user's raw preference summary (no product fetch).
+  Future<Map<String, dynamic>> getPreferences() async {
+    final res = await _dio.get('/api/v1/recommendations/preferences');
+    return res.data as Map<String, dynamic>;
+  }
 }
