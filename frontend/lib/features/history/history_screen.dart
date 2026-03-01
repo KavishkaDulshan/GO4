@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/error_utils.dart';
 import '../../models/history_item.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/history_provider.dart';
@@ -20,15 +21,16 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final auth    = ref.watch(authProvider);
     final history = ref.watch(historyProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('History')),
       body: history.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => _ErrorState(message: err.toString()),
+        error: (err, _) => _ErrorState(message: friendlyError(err)),
         data: (items) {
           if (!auth.isSignedIn) {
             return const _SignInNudge();
@@ -60,6 +62,8 @@ class _SignInNudge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -70,31 +74,31 @@ class _SignInNudge extends StatelessWidget {
               width:  80,
               height: 80,
               decoration: BoxDecoration(
-                color:  AppTheme.surfaceHigh,
+                color:  cs.surfaceContainerHighest,
                 shape:  BoxShape.circle,
-                border: Border.all(color: AppTheme.surfaceBorder),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.lock_outline_rounded,
                 size:  36,
-                color: AppTheme.onSurfaceMid,
+                color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Sign in to view history',
               style: TextStyle(
-                color:      AppTheme.onSurface,
+                color:      cs.onSurface,
                 fontSize:   17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Your past searches sync across\nall your devices automatically.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color:    AppTheme.onSurfaceMid,
+                color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                 fontSize: 14,
                 height:   1.5,
               ),
@@ -120,6 +124,8 @@ class _EmptyHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -130,31 +136,31 @@ class _EmptyHistory extends StatelessWidget {
               width:  80,
               height: 80,
               decoration: BoxDecoration(
-                color:  AppTheme.surfaceHigh,
+                color:  cs.surfaceContainerHighest,
                 shape:  BoxShape.circle,
-                border: Border.all(color: AppTheme.surfaceBorder),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.search_off_rounded,
                 size:  36,
-                color: AppTheme.onSurfaceMid,
+                color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No searches yet',
               style: TextStyle(
-                color:      AppTheme.onSurface,
+                color:      cs.onSurface,
                 fontSize:   17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Point your camera at a product\nor type a description to get started.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color:    AppTheme.onSurfaceMid,
+                color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                 fontSize: 14,
                 height:   1.5,
               ),
@@ -172,19 +178,21 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded,
-                size: 48, color: AppTheme.onSurfaceMid),
+            Icon(Icons.cloud_off_rounded,
+                size: 48, color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Could not load history',
               style: TextStyle(
-                color:      AppTheme.onSurface,
+                color:      cs.onSurface,
                 fontSize:   16,
                 fontWeight: FontWeight.w600,
               ),
@@ -193,8 +201,9 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: AppTheme.onSurfaceMid, fontSize: 12),
+              style: TextStyle(
+                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                  fontSize: 12),
             ),
           ],
         ),
@@ -213,6 +222,8 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final thumbs = item.results
         .where((p) => p.thumbnail != null)
         .take(3)
@@ -223,9 +234,9 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color:        AppTheme.surface,
+        color:        cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border:       Border.all(color: AppTheme.surfaceBorder),
+        border:       Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Material(
         color:        Colors.transparent,
@@ -248,13 +259,13 @@ class _HistoryCard extends StatelessWidget {
                           width:  56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color:        AppTheme.tagChipBg,
+                            color:        isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.shopping_bag_outlined,
                             size:  26,
-                            color: AppTheme.onSurfaceMid,
+                            color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                           ),
                         )
                       : _ThumbnailStack(urls: thumbs),
@@ -272,10 +283,10 @@ class _HistoryCard extends StatelessWidget {
                             : item.tags.searchQuery,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize:   14,
-                          color:      AppTheme.onSurface,
+                          color:      cs.onSurface,
                         ),
                       ),
                       if (chips.isNotEmpty) ...[
@@ -291,8 +302,8 @@ class _HistoryCard extends StatelessWidget {
                       Text(
                         '${item.results.length} result'
                         '${item.results.length == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                          color:    AppTheme.onSurfaceMid,
+                        style: TextStyle(
+                          color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                           fontSize: 12,
                         ),
                       ),
@@ -307,14 +318,14 @@ class _HistoryCard extends StatelessWidget {
                   children: [
                     Text(
                       _timeAgo(item.createdAt),
-                      style: const TextStyle(
-                        color:    AppTheme.onSurfaceMid,
+                      style: TextStyle(
+                        color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                         fontSize: 11,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Icon(Icons.chevron_right_rounded,
-                        size: 18, color: AppTheme.onSurfaceMid),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 18, color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
                   ],
                 ),
               ],
@@ -343,17 +354,19 @@ class _MiniChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color:        AppTheme.tagChipBg,
+        color:        isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
         borderRadius: BorderRadius.circular(20),
-        border:       Border.all(color: AppTheme.surfaceBorder),
+        border:       Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color:    AppTheme.onSurfaceMid,
+        style: TextStyle(
+          color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
           fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
@@ -370,6 +383,8 @@ class _ThumbnailStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     const sz      = 44.0;
     const overlap = 10.0;
     final count   = urls.length.clamp(1, 3);
@@ -390,9 +405,9 @@ class _ThumbnailStack extends StatelessWidget {
               errorWidget: (_, __, ___) => Container(
                 width:  sz,
                 height: sz,
-                color:  AppTheme.tagChipBg,
-                child:  const Icon(Icons.image_not_supported_outlined,
-                    size: 18, color: AppTheme.onSurfaceMid),
+                color:  isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
+                child:  Icon(Icons.image_not_supported_outlined,
+                    size: 18, color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
               ),
             ),
           ),

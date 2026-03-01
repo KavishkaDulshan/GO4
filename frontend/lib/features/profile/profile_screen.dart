@@ -19,9 +19,10 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final auth          = ref.watch(authProvider);
     final wishlistCount = ref.watch(wishlistProvider).length;
-    final isDark        = ref.watch(themeProvider.notifier).isDark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -36,7 +37,7 @@ class ProfileScreen extends ConsumerWidget {
                     : _SignedOutView(ref: ref, errorMessage: auth.errorMessage),
           ),
 
-          Container(height: 1, color: AppTheme.surfaceBorder),
+          Container(height: 1, color: Theme.of(context).dividerColor),
 
           _QuickActionTile(
             icon:      Icons.bookmark_rounded,
@@ -49,7 +50,7 @@ class ProfileScreen extends ConsumerWidget {
 
           // Theme toggle
           Material(
-            color: Theme.of(context).colorScheme.surface,
+            color: cs.surface,
             child: InkWell(
               onTap: () => ref.read(themeProvider.notifier).toggle(),
               splashColor: AppTheme.primary.withValues(alpha: 0.06),
@@ -75,7 +76,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: Text(
                         isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
                         style: TextStyle(
-                          color:      Theme.of(context).colorScheme.onSurface,
+                          color:      cs.onSurface,
                           fontSize:   15,
                           fontWeight: FontWeight.w500,
                         ),
@@ -110,6 +111,8 @@ class _SignedOutView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Column(
@@ -118,31 +121,31 @@ class _SignedOutView extends StatelessWidget {
             width:  96,
             height: 96,
             decoration: BoxDecoration(
-              color:  AppTheme.surfaceHigh,
+              color:  cs.surfaceContainerHighest,
               shape:  BoxShape.circle,
-              border: Border.all(color: AppTheme.surfaceBorder),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person_outline_rounded,
               size:  48,
-              color: AppTheme.onSurfaceMid,
+              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Sign in to GO4',
             style: TextStyle(
-              color:      AppTheme.onSurface,
+              color:      cs.onSurface,
               fontSize:   22,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'Save your search history and\naccess it across all your devices.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color:  AppTheme.onSurfaceMid,
+              color:  isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
               fontSize: 14,
               height: 1.5,
             ),
@@ -188,11 +191,11 @@ class _SignedOutView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Your data is used only to power search history.\nWe never share or sell your information.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color:    AppTheme.onSurfaceMid,
+              color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
               fontSize: 11,
               height:   1.5,
             ),
@@ -213,6 +216,8 @@ class _SignedInView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final user = auth.user!;
 
     return SingleChildScrollView(
@@ -222,10 +227,10 @@ class _SignedInView extends StatelessWidget {
           Container(
             width:   double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
+            decoration: BoxDecoration(
+              color: cs.surface,
               border: Border(
-                bottom: BorderSide(color: AppTheme.surfaceBorder),
+                bottom: BorderSide(color: Theme.of(context).dividerColor),
               ),
             ),
             child: Column(
@@ -234,13 +239,14 @@ class _SignedInView extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 44,
-                      backgroundColor: AppTheme.surfaceHigh,
+                      backgroundColor: cs.surfaceContainerHighest,
                       backgroundImage: user.photoUrl != null
                           ? CachedNetworkImageProvider(user.photoUrl!)
                           : null,
                       child: user.photoUrl == null
-                          ? const Icon(Icons.person_rounded,
-                              size: 44, color: AppTheme.onSurfaceMid)
+                          ? Icon(Icons.person_rounded,
+                              size: 44,
+                              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight)
                           : null,
                     ),
                     Positioned(
@@ -253,7 +259,7 @@ class _SignedInView extends StatelessWidget {
                           color:  AppTheme.primary,
                           shape:  BoxShape.circle,
                           border: Border.all(
-                            color: AppTheme.background,
+                            color: isDark ? AppTheme.background : AppTheme.backgroundLight,
                             width: 2,
                           ),
                         ),
@@ -270,18 +276,18 @@ class _SignedInView extends StatelessWidget {
                 if (user.displayName != null) ...[
                   Text(
                     user.displayName!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize:   20,
                       fontWeight: FontWeight.w700,
-                      color:      AppTheme.onSurface,
+                      color:      cs.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                 ],
                 Text(
                   user.email,
-                  style: const TextStyle(
-                    color:    AppTheme.onSurfaceMid,
+                  style: TextStyle(
+                    color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                     fontSize: 14,
                   ),
                 ),
@@ -354,12 +360,14 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
-          color:         AppTheme.onSurfaceMid,
+        style: TextStyle(
+          color:         isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
           fontSize:      11,
           fontWeight:    FontWeight.w600,
           letterSpacing: 0.6,
@@ -390,8 +398,10 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Material(
-      color: AppTheme.surface,
+      color: cs.surface,
       child: InkWell(
         onTap:       onTap,
         splashColor: AppTheme.primary.withValues(alpha: 0.06),
@@ -412,8 +422,8 @@ class _QuickActionTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    color:      AppTheme.onSurface,
+                  style: TextStyle(
+                    color:      cs.onSurface,
                     fontSize:   15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -440,8 +450,9 @@ class _QuickActionTile extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               trailing ??
-                  const Icon(Icons.chevron_right_rounded,
-                      size: 20, color: AppTheme.onSurfaceMid),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 20,
+                      color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
             ],
           ),
         ),

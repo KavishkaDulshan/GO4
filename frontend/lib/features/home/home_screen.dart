@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/error_utils.dart';
 import '../../providers/search_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -70,7 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera error: $e')),
+          SnackBar(content: Text(friendlyError(e))),
         );
       }
     }

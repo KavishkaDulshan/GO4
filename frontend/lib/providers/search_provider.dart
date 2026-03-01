@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
+import '../core/utils/error_utils.dart';
 import '../models/history_item.dart';
 import '../models/search_filter.dart';
 import '../models/search_result.dart';
@@ -106,7 +107,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     } catch (e) {
       state = state.copyWith(
         status:       SearchStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }
@@ -179,7 +180,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     } catch (e) {
       state = state.copyWith(
         status:       SearchStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }
@@ -197,7 +198,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     } catch (e) {
       state = state.copyWith(
         status:       SearchStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }

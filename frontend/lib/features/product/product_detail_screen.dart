@@ -134,6 +134,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final product = widget.product;
     return Scaffold(
       appBar: AppBar(
@@ -158,10 +160,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   // ── Title ────────────────────────────────────────────────
                   Text(
                     product.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.onSurface,
+                      color: cs.onSurface,
                       height: 1.3,
                     ),
                   ),
@@ -184,9 +186,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         const SizedBox(width: 10),
                         Text(
                           product.originalPrice!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
-                            color: Colors.white38,
+                            color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
                             decoration: TextDecoration.lineThrough,
                           ),
                         ),
@@ -230,7 +232,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ],
                     ),
 
-                  const Divider(color: Colors.white12, height: 32),
+                  Divider(
+                    color: isDark ? Colors.white12 : AppTheme.surfaceBorderLight,
+                    height: 32,
+                  ),
 
                   // ── Store info ───────────────────────────────────────────
                   if (product.source != null)
@@ -246,21 +251,25 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       value: _shortenUrl(product.link!),
                     ),
 
-                  const Divider(color: Colors.white12, height: 32),
+                  Divider(
+                    color: isDark ? Colors.white12 : AppTheme.surfaceBorderLight,
+                    height: 32,
+                  ),
 
                   // ── AI-enriched content ──────────────────────────────────
                   if (_isLoadingEnrichment)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(
                         child: Column(
                           children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 12),
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 12),
                             Text(
                               'Loading product details…',
                               style: TextStyle(
-                                  color: Colors.white38, fontSize: 13),
+                                  color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                                  fontSize: 13),
                             ),
                           ],
                         ),
@@ -273,8 +282,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _enrichment!.description,
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : AppTheme.onSurfaceLight,
                           fontSize: 14,
                           height: 1.5,
                         ),
@@ -306,8 +315,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         _enrichment!.compatibility!,
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : AppTheme.onSurfaceLight,
                           fontSize: 14,
                           height: 1.5,
                         ),
@@ -331,8 +340,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         ),
                         child: Text(
                           _enrichment!.bestFor!,
-                          style: const TextStyle(
-                            color: AppTheme.onSurface,
+                          style: TextStyle(
+                            color: cs.onSurface,
                             fontSize: 14,
                             height: 1.4,
                           ),
@@ -350,7 +359,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     ],
 
                   // ── Customer Review Analysis ─────────────────────────────
-                  const Divider(color: Colors.white12, height: 40),
+                  Divider(
+                    color: isDark ? Colors.white12 : AppTheme.surfaceBorderLight,
+                    height: 40,
+                  ),
                   const _SectionHeader(label:'Customer Review Analysis'),
                   const SizedBox(height: 14),
 
@@ -370,23 +382,25 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       onPressed: _loadReviews,
                     )
                   else if (_isLoadingReviews)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Center(
                         child: Column(
                           children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 12),
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 12),
                             Text(
                               'Searching reviews across the web…',
                               style: TextStyle(
-                                  color: Colors.white38, fontSize: 13),
+                                  color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                                  fontSize: 13),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               'Reddit · Amazon · CNET · Trustpilot',
                               style: TextStyle(
-                                  color: Colors.white24, fontSize: 11),
+                                  color: isDark ? Colors.white24 : AppTheme.surfaceBorderLight,
+                                  fontSize: 11),
                             ),
                           ],
                         ),
@@ -395,12 +409,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   else if (_reviews != null)
                     _ReviewSection(result: _reviews!)
                   else if (_reviewsError != null)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'Could not load reviews. Please try again.',
                         style: TextStyle(
-                            color: Colors.white38, fontSize: 13),
+                            color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                            fontSize: 13),
                       ),
                     ),
 
@@ -453,12 +468,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w700,
-        color: AppTheme.onSurface,
+        color: cs.onSurface,
       ),
     );
   }
@@ -470,20 +486,23 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final w = MediaQuery.sizeOf(context).width;
     return Container(
       width: double.infinity,
       height: w * 0.75,
-      color: AppTheme.surface,
+      color: cs.surface,
       child: url != null
           ? CachedNetworkImage(
               imageUrl: url!,
               fit: BoxFit.contain,
               placeholder: (_, __) =>
                   const Center(child: CircularProgressIndicator()),
-              errorWidget: (_, __, ___) => const Center(
+              errorWidget: (_, __, ___) => Center(
                 child: Icon(Icons.image_not_supported_outlined,
-                    size: 64, color: Colors.white24),
+                    size: 64,
+                    color: isDark ? Colors.white24 : AppTheme.surfaceBorderLight),
               ),
             )
           : const Center(
@@ -501,6 +520,7 @@ class _RatingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         ...List.generate(5, (i) {
@@ -514,14 +534,18 @@ class _RatingRow extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           rating.toStringAsFixed(1),
-          style: const TextStyle(
-              color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: isDark ? Colors.white70 : AppTheme.onSurfaceLight,
+              fontSize: 14,
+              fontWeight: FontWeight.w600),
         ),
         if (count != null) ...[
           const SizedBox(width: 4),
           Text(
             '($count reviews)',
-            style: const TextStyle(color: Colors.white38, fontSize: 13),
+            style: TextStyle(
+                color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                fontSize: 13),
           ),
         ],
       ],
@@ -597,6 +621,8 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -609,11 +635,12 @@ class _InfoTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 11)),
+                    style: TextStyle(
+                        color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                        fontSize: 11)),
                 Text(value,
-                    style: const TextStyle(
-                        color: AppTheme.onSurface, fontSize: 14)),
+                    style: TextStyle(
+                        color: cs.onSurface, fontSize: 14)),
               ],
             ),
           ),
@@ -629,6 +656,7 @@ class _FeatureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -643,7 +671,7 @@ class _FeatureRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+              style: TextStyle(color: cs.onSurface, fontSize: 13),
             ),
           ),
         ],
@@ -658,11 +686,13 @@ class _SpecRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.tagChipBg,
+        color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -672,8 +702,8 @@ class _SpecRow extends StatelessWidget {
             width: 120,
             child: Text(
               spec.key,
-              style: const TextStyle(
-                  color: Colors.white54,
+              style: TextStyle(
+                  color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
                   fontSize: 13,
                   fontWeight: FontWeight.w500),
             ),
@@ -682,7 +712,7 @@ class _SpecRow extends StatelessWidget {
           Expanded(
             child: Text(
               spec.value,
-              style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+              style: TextStyle(color: cs.onSurface, fontSize: 13),
             ),
           ),
         ],
@@ -698,6 +728,8 @@ class _LegacySpecRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final colonIdx = spec.indexOf(':');
     final label = colonIdx > 0 ? spec.substring(0, colonIdx).trim() : null;
     final value = colonIdx > 0 ? spec.substring(colonIdx + 1).trim() : spec;
@@ -706,7 +738,7 @@ class _LegacySpecRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.tagChipBg,
+        color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -717,8 +749,8 @@ class _LegacySpecRow extends StatelessWidget {
               width: 110,
               child: Text(
                 label,
-                style: const TextStyle(
-                    color: Colors.white54,
+                style: TextStyle(
+                    color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
                     fontSize: 13,
                     fontWeight: FontWeight.w500),
               ),
@@ -728,7 +760,7 @@ class _LegacySpecRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+              style: TextStyle(color: cs.onSurface, fontSize: 13),
             ),
           ),
         ],
@@ -745,6 +777,8 @@ class _ReviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final a = result.analysis;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -764,14 +798,16 @@ class _ReviewSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 a.aiRating!.toStringAsFixed(1),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface),
+                    color: cs.onSurface),
               ),
               const SizedBox(width: 4),
-              const Text('/5  AI',
-                  style: TextStyle(color: Colors.white38, fontSize: 12)),
+              Text('/5  AI',
+                  style: TextStyle(
+                      color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                      fontSize: 12)),
               const Spacer(),
             ],
             _SentimentChip(label: a.sentimentLabel),
@@ -783,8 +819,10 @@ class _ReviewSection extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Text('Buyer satisfaction',
-                  style: TextStyle(color: Colors.white54, fontSize: 12)),
+              Text('Buyer satisfaction',
+                  style: TextStyle(
+                      color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
+                      fontSize: 12)),
               const Spacer(),
               Text('${a.satisfactionPercent}%',
                   style: TextStyle(
@@ -799,7 +837,9 @@ class _ReviewSection extends StatelessWidget {
             child: LinearProgressIndicator(
               value: a.satisfactionPercent! / 100,
               minHeight: 8,
-              backgroundColor: Colors.white10,
+              backgroundColor: isDark
+                  ? Colors.white10
+                  : AppTheme.surfaceBorderLight.withValues(alpha: 0.5),
               valueColor: AlwaysStoppedAnimation<Color>(
                   _satisfactionColor(a.satisfactionPercent!)),
             ),
@@ -812,8 +852,10 @@ class _ReviewSection extends StatelessWidget {
         if (a.summary.isNotEmpty)
           Text(
             a.summary,
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 13, height: 1.5),
+            style: TextStyle(
+                color: isDark ? Colors.white70 : AppTheme.onSurfaceLight,
+                fontSize: 13,
+                height: 1.5),
           ),
 
         const SizedBox(height: 18),
@@ -903,8 +945,8 @@ class _ReviewSection extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   a.verdict,
-                  style: const TextStyle(
-                      color: AppTheme.onSurface,
+                  style: TextStyle(
+                      color: cs.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       height: 1.4),
@@ -916,9 +958,9 @@ class _ReviewSection extends StatelessWidget {
         // ── Source snippets ──────────────────────────────────────────────
         if (result.snippets.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const Text('Source Reviews',
+          Text('Source Reviews',
               style: TextStyle(
-                  color: Colors.white54,
+                  color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5)),
@@ -942,12 +984,13 @@ class _SentimentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = switch (label) {
       'Highly Positive'  => Colors.greenAccent,
       'Mostly Positive'  => Colors.lightGreenAccent,
       'Mostly Negative'  => Colors.orangeAccent,
       'Highly Negative'  => Colors.redAccent,
-      _                  => Colors.white54,
+      _                  => isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -970,6 +1013,7 @@ class _ProsConsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = isPositive ? Colors.greenAccent : Colors.redAccent;
     final icon  = isPositive
         ? Icons.add_circle_outline
@@ -986,8 +1030,10 @@ class _ProsConsRow extends StatelessWidget {
           const SizedBox(width: 5),
           Expanded(
             child: Text(text,
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 12, height: 1.4)),
+                style: TextStyle(
+                    color: isDark ? Colors.white70 : AppTheme.onSurfaceLight,
+                    fontSize: 12,
+                    height: 1.4)),
           ),
         ],
       ),
@@ -1001,11 +1047,13 @@ class _SnippetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.tagChipBg,
+        color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -1027,8 +1075,8 @@ class _SnippetCard extends StatelessWidget {
             Text(snippet.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: AppTheme.onSurface,
+                style: TextStyle(
+                    color: cs.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.w500)),
           ],
@@ -1037,8 +1085,10 @@ class _SnippetCard extends StatelessWidget {
             Text(snippet.snippet,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    color: Colors.white54, fontSize: 12, height: 1.4)),
+                style: TextStyle(
+                    color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
+                    fontSize: 12,
+                    height: 1.4)),
           ],
         ],
       ),

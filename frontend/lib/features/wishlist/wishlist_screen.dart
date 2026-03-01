@@ -18,10 +18,11 @@ class WishlistScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final items = ref.watch(wishlistProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text('Saved  (${items.length})'),
         leading: IconButton(
@@ -50,27 +51,34 @@ class WishlistScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppTheme.surfaceHigh,
+        backgroundColor: cs.surfaceContainerHighest,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14)),
         title: const Text('Clear wishlist?'),
-        titleTextStyle: const TextStyle(
-          color:      AppTheme.onSurface,
+        titleTextStyle: TextStyle(
+          color:      cs.onSurface,
           fontSize:   17,
           fontWeight: FontWeight.w700,
         ),
-        content: const Text(
+        content: Text(
           'All saved items will be removed. This cannot be undone.',
-          style: TextStyle(color: AppTheme.onSurfaceMid, fontSize: 14),
+          style: TextStyle(
+            color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+            fontSize: 14,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.onSurfaceMid)),
+            child: Text('Cancel',
+                style: TextStyle(
+                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                )),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -97,6 +105,8 @@ class _EmptyWishlist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -107,31 +117,31 @@ class _EmptyWishlist extends StatelessWidget {
               width:  80,
               height: 80,
               decoration: BoxDecoration(
-                color:  AppTheme.surfaceHigh,
+                color:  cs.surfaceContainerHighest,
                 shape:  BoxShape.circle,
-                border: Border.all(color: AppTheme.surfaceBorder),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.bookmark_border_rounded,
                 size:  36,
-                color: AppTheme.onSurfaceMid,
+                color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No saved items',
               style: TextStyle(
-                color:      AppTheme.onSurface,
+                color:      cs.onSurface,
                 fontSize:   17,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Tap the bookmark icon on any product\nto save it here for later.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color:    AppTheme.onSurfaceMid,
+                color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                 fontSize: 14,
                 height:   1.5,
               ),
@@ -151,15 +161,17 @@ class _WishlistCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final product = item.product;
     final img     = product.displayImage;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color:        AppTheme.surface,
+        color:        cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border:       Border.all(color: AppTheme.surfaceBorder),
+        border:       Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Material(
         color:        Colors.transparent,
@@ -184,7 +196,7 @@ class _WishlistCard extends ConsumerWidget {
                             imageUrl: img,
                             fit: BoxFit.cover,
                             placeholder: (_, __) => Container(
-                              color: AppTheme.tagChipBg,
+                              color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
                               child: const Center(
                                 child: SizedBox(
                                   width: 18,
@@ -197,16 +209,16 @@ class _WishlistCard extends ConsumerWidget {
                               ),
                             ),
                             errorWidget: (_, __, ___) => Container(
-                              color: AppTheme.tagChipBg,
-                              child: const Icon(
+                              color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
+                              child: Icon(
                                 Icons.image_not_supported_outlined,
                                 size:  28,
-                                color: AppTheme.onSurfaceMid,
+                                color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                               ),
                             ),
                           )
                         : Container(
-                            color: AppTheme.tagChipBg,
+                            color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
                             child: const Icon(
                               Icons.shopping_bag_outlined,
                               size:  36,
@@ -226,10 +238,10 @@ class _WishlistCard extends ConsumerWidget {
                         product.title,
                         maxLines:  2,
                         overflow:  TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize:   14,
-                          color:      AppTheme.onSurface,
+                          color:      cs.onSurface,
                           height:     1.3,
                         ),
                       ),
@@ -247,8 +259,8 @@ class _WishlistCard extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           product.source!,
-                          style: const TextStyle(
-                            color:    AppTheme.onSurfaceMid,
+                          style: TextStyle(
+                            color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                             fontSize: 12,
                           ),
                         ),
@@ -256,13 +268,14 @@ class _WishlistCard extends ConsumerWidget {
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          const Icon(Icons.bookmark_rounded,
-                              size: 11, color: AppTheme.onSurfaceMid),
+                          Icon(Icons.bookmark_rounded,
+                              size: 11,
+                              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
                           const SizedBox(width: 3),
                           Text(
                             'Saved ${_relativeDate(item.savedAt)}',
-                            style: const TextStyle(
-                              color:    AppTheme.onSurfaceMid,
+                            style: TextStyle(
+                              color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                               fontSize: 11,
                             ),
                           ),
