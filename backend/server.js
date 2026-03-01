@@ -9,12 +9,13 @@ const path = require('path');
 const fs = require('fs');
 
 // ─── Route modules ───────────────────────────────────────────────────────────
-const searchRouter  = require('./routes/search');
-const analyzeRouter = require('./routes/analyze');
-const authRouter    = require('./routes/auth');
-const historyRouter = require('./routes/history');
-const placesRouter  = require('./routes/places');
-const productRouter = require('./routes/product');
+const searchRouter          = require('./routes/search');
+const analyzeRouter         = require('./routes/analyze');
+const authRouter            = require('./routes/auth');
+const historyRouter         = require('./routes/history');
+const placesRouter          = require('./routes/places');
+const productRouter         = require('./routes/product');
+const recommendationsRouter = require('./routes/recommendations');
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 const authMiddleware = require('./middleware/auth');
@@ -160,6 +161,9 @@ app.use('/api/v1/places', placesRouter);
 
 // Product enrichment (Gemini-powered specs/description, no auth required)
 app.use('/api/v1/product', productRouter);
+
+// Personalised recommendations + preference profile (requires auth)
+app.use('/api/v1/recommendations', authMiddleware, recommendationsRouter);
 
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));

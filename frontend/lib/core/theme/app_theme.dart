@@ -24,6 +24,15 @@ class AppTheme {
   static const Color tagChipBg    = Color(0xFF2D333B); // chip background
   static const Color error        = Color(0xFFF85149); // soft red
 
+  // ── Light-theme surface colours ──────────────────────────────────────────────
+  static const Color backgroundLight    = Color(0xFFF6F8FA); // GitHub light bg
+  static const Color surfaceLight       = Color(0xFFFFFFFF); // white cards
+  static const Color surfaceHighLight   = Color(0xFFEEF0F2); // elevated surface
+  static const Color surfaceBorderLight = Color(0xFFD0D7DE); // subtle borders
+  static const Color onSurfaceLight     = Color(0xFF1F2328); // near-black text
+  static const Color onSurfaceMidLight  = Color(0xFF636C76); // muted text
+  static const Color tagChipBgLight     = Color(0xFFEFF1F3); // chip background
+
   // ── Semantic aliases (for readability) ───────────────────────────────────────
   static const Color success = Color(0xFF3FB950); // green check
   static const Color warning = Color(0xFFD29922); // amber warning
@@ -189,6 +198,116 @@ class AppTheme {
             side: const BorderSide(color: surfaceBorder),
           ),
           textStyle: const TextStyle(color: onSurface, fontSize: 14),
+        ),
+      );
+
+  // ── Light theme ──────────────────────────────────────────────────────────────
+  static ThemeData get light => ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: backgroundLight,
+        colorScheme: const ColorScheme.light(
+          primary:   primary,
+          secondary: accent,
+          surface:   surfaceLight,
+          onSurface: onSurfaceLight,
+          error:     error,
+        ),
+        textTheme: const TextTheme(
+          displayLarge:  TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w800, letterSpacing: -1.0),
+          displayMedium: TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+          titleLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700),
+          titleMedium:   TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
+          bodyLarge:     TextStyle(color: onSurfaceLight),
+          bodyMedium:    TextStyle(color: onSurfaceMidLight),
+          bodySmall:     TextStyle(color: onSurfaceMidLight),
+          labelLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor:  backgroundLight,
+          elevation:        0,
+          scrolledUnderElevation: 0,
+          centerTitle:      true,
+          titleTextStyle: TextStyle(
+            fontSize:    18,
+            fontWeight:  FontWeight.w700,
+            color:       onSurfaceLight,
+            letterSpacing: -0.2,
+          ),
+          iconTheme: IconThemeData(color: onSurfaceLight),
+        ),
+        cardTheme: CardThemeData(
+          color:     surfaceLight,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: surfaceBorderLight),
+          ),
+        ),
+        chipTheme: const ChipThemeData(
+          backgroundColor: tagChipBgLight,
+          labelStyle:      TextStyle(color: onSurfaceLight, fontSize: 12),
+          shape:           StadiumBorder(),
+          padding:         EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          side:            BorderSide.none,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled:    true,
+          fillColor: surfaceHighLight,
+          hintStyle: const TextStyle(color: onSurfaceMidLight),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   const BorderSide(color: surfaceBorderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   const BorderSide(color: primary, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(color: primary),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor:  surfaceHighLight,
+          contentTextStyle: const TextStyle(color: onSurfaceLight),
+          behavior:         SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 4,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            elevation:       0,
+            shadowColor:     Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize:   15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color:     surfaceBorderLight,
+          thickness: 1,
+          space:     1,
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(foregroundColor: onSurfaceLight),
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: surfaceHighLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: surfaceBorderLight),
+          ),
+          textStyle: const TextStyle(color: onSurfaceLight, fontSize: 14),
         ),
       );
 }

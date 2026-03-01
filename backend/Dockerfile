@@ -28,4 +28,4 @@ USER go4
 # Container listens on 3000; host maps 5000 → 3000 via docker-compose
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "start"]

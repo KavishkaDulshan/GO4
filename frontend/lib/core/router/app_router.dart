@@ -8,6 +8,7 @@ import '../../features/history/history_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/product/product_detail_screen.dart';
 import '../../features/wishlist/wishlist_screen.dart';
+import '../../features/recommendations/recommendations_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../models/product.dart';
 
@@ -18,9 +19,10 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
-        GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-        GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+        GoRoute(path: '/',        builder: (_, __) => const HomeScreen()),
+        GoRoute(path: '/map',     builder: (_, __) => const MapScreen()),
         GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
+        GoRoute(path: '/for-you', builder: (_, __) => const RecommendationsScreen()),
         GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       ],
     ),

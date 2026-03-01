@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../providers/wishlist_provider.dart';
 
 /// Profile / Account screen.
@@ -20,9 +21,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth          = ref.watch(authProvider);
     final wishlistCount = ref.watch(wishlistProvider).length;
+    final isDark        = ref.watch(themeProvider.notifier).isDark;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Account')),
       body: Column(
         children: [
@@ -43,6 +45,52 @@ class ProfileScreen extends ConsumerWidget {
             badge:     wishlistCount > 0 ? '$wishlistCount' : null,
             badgeColor: AppTheme.accent,
             onTap:     () => context.push('/wishlist'),
+          ),
+
+          // Theme toggle
+          Material(
+            color: Theme.of(context).colorScheme.surface,
+            child: InkWell(
+              onTap: () => ref.read(themeProvider.notifier).toggle(),
+              splashColor: AppTheme.primary.withValues(alpha: 0.06),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width:  40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color:        AppTheme.primaryLight.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                        size:  20,
+                        color: AppTheme.primaryLight,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+                        style: TextStyle(
+                          color:      Theme.of(context).colorScheme.onSurface,
+                          fontSize:   15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Switch(
+                      value:    !isDark,
+                      onChanged: (_) =>
+                          ref.read(themeProvider.notifier).toggle(),
+                      activeThumbColor: AppTheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
 
           SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
@@ -275,6 +323,12 @@ class _SignedInView extends StatelessWidget {
             iconColor: AppTheme.primaryLight,
             label:     'Search History',
             onTap:     () => context.go('/history'),
+          ),
+          _QuickActionTile(
+            icon:      Icons.auto_awesome_rounded,
+            iconColor: AppTheme.accent,
+            label:     'For You — Recommendations',
+            onTap:     () => context.go('/for-you'),
           ),
 
           const SizedBox(height: 12),
