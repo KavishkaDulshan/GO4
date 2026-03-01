@@ -1,7 +1,7 @@
 'use strict';
 const mongoose = require('mongoose');
 
-// A single preference entry, e.g. { value: 'cotton', count: 4 }
+//gg A single preference entry, e.g. { value: 'cotton', count: 4 }
 const preferenceEntrySchema = new mongoose.Schema(
   {
     value: { type: String, required: true },
