@@ -116,14 +116,59 @@ class SearchNotifier extends StateNotifier<SearchState> {
   Future<void> submitWithFilters(List<SearchFilter> filters) async {
     state = state.copyWith(status: SearchStatus.processing);
     try {
-      // Build enriched query: base Gemini query + all selected filter values.
-      final base = (state.analyzedTags?['searchQuery'] as String? ?? '').trim();
+      final tags = state.analyzedTags ?? {};
+
+      // ── Detect if the brand filter was explicitly changed by the user ─────
+      // A brand override means the AI's detected brand was deselected, so the
+      // entire AI-generated searchQuery (e.g. "AMD Ryzen Laptop ...") is
+      // brand-opinionated and cannot be used as-is — stripping just "AMD" still
+      // leaves brand-specific processor terms like "Ryzen".
+      final brandFilter = filters.cast<SearchFilter?>().firstWhere(
+        (f) => f?.key == 'brand',
+        orElse: () => null,
+      );
+      final brandOverridden = brandFilter != null &&
+          brandFilter.defaultValue != null &&
+          brandFilter.defaultValue!.isNotEmpty &&
+          !brandFilter.selectedValues.contains(brandFilter.defaultValue);
+
+      // ── Build a brand-neutral base when brand was overridden ──────────────
+      // Use category + style tags — both are brand-agnostic.
+      // Example: category="Laptops", style="productivity" → "Laptops productivity"
+      // This avoids AMD-specific "Ryzen", Nvidia-specific "GeForce", etc.
+      String base;
+      if (brandOverridden) {
+        final category = (tags['category'] as String? ?? '').trim();
+        final style    = (tags['style']    as String? ?? '').trim();
+        base = [category, style].where((s) => s.isNotEmpty).join(' ');
+      } else {
+        // Brand unchanged: start from the full AI searchQuery, then strip any
+        // other filter defaultValues the user explicitly deselected.
+        base = (tags['searchQuery'] as String? ?? '').trim();
+        for (final f in filters) {
+          final d = f.defaultValue;
+          if (d != null && d.isNotEmpty && !f.selectedValues.contains(d)) {
+            base = base
+                .replaceAll(RegExp(RegExp.escape(d), caseSensitive: false), '')
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
+          }
+        }
+      }
+
+      // ── Append user-selected filter values ────────────────────────────────
+      // Skip any value already present in base to prevent duplication
+      // (e.g. "black" appearing in both searchQuery and the color filter).
+      final lowerBase = base.toLowerCase();
       final extras = filters
           .expand((f) => f.selectedValues)
           .where((v) => v.isNotEmpty)
+          .where((v) => !lowerBase.contains(v.toLowerCase()))
           .toList();
 
-      final enrichedQuery = extras.isEmpty ? base : '$base ${extras.join(' ')}';
+      final enrichedQuery = [base, ...extras]
+          .where((s) => s.isNotEmpty)
+          .join(' ');
 
       // Do NOT re-send image or audio — that would trigger Gemini re-analysis
       // and overwrite the filter-enriched query.
