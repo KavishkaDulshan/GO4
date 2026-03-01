@@ -1,0 +1,35 @@
+name: Deploy Backend to Azure VM
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - "backend/**" # Only trigger if backend files change
+            - "docker-compose.yml"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Deploy to VM via SSH
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.HOST }}
+                  username: ${{ secrets.USERNAME }}
+                  key: ${{ secrets.SSH_KEY }}
+                  port: 22
+                  script: |
+                      # 1. Go to project folder
+                      cd ~/go4
+
+                      # 2. Pull latest code from GitHub
+                      git pull origin main
+
+                      # 3. Rebuild and restart containers (Detached mode)
+                      # We use --build to ensure changes in code are re-compiled
+                      sudo docker compose up -d --build
+
+                      # 4. Clean up unused images to save disk space on your 1GB VM
+                      sudo docker image prune -f
