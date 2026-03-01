@@ -5,31 +5,49 @@ on:
         branches:
             - main
         paths:
-            - "backend/**" # Only trigger if backend files change
-            - "docker-compose.yml"
+            - "backend/**"
+            - "docker-compose.prod.yml"
+            - ".github/workflows/deploy.yml"
 
 jobs:
     deploy:
+        name: Build & deploy on Azure VM
         runs-on: ubuntu-latest
 
         steps:
-            - name: Deploy to VM via SSH
+            - name: SSH into VM and redeploy
               uses: appleboy/ssh-action@v1.0.3
               with:
-                  host: ${{ secrets.HOST }}
-                  username: ${{ secrets.USERNAME }}
-                  key: ${{ secrets.SSH_KEY }}
+                  host: ${{ secrets.VM_HOST }}
+                  username: ${{ secrets.VM_USERNAME }}
+                  key: ${{ secrets.VM_SSH_KEY }}
                   port: 22
                   script: |
-                      # 1. Go to project folder
-                      cd ~/go4
+                      set -e
 
-                      # 2. Pull latest code from GitHub
-                      git pull origin main
+                      echo "──────────────────────────────────────────"
+                      echo " Go4 Auto-Deploy"
+                      echo "──────────────────────────────────────────"
 
-                      # 3. Rebuild and restart containers (Detached mode)
-                      # We use --build to ensure changes in code are re-compiled
-                      sudo docker compose up -d --build
+                      # ── 1. Pull latest code ──────────────────────
+                      cd ~/go4-project/GO4
+                      git fetch origin main
+                      git reset --hard origin/main
+                      echo "✅ Code updated"
 
-                      # 4. Clean up unused images to save disk space on your 1GB VM
+                      # ── 2. Rebuild and restart on port 80 ────────
+                      sudo docker compose -f docker-compose.prod.yml down
+                      sudo docker compose -f docker-compose.prod.yml up -d --build
+                      echo "✅ Container restarted"
+
+                      # ── 3. Remove dangling images (saves disk) ───
                       sudo docker image prune -f
+
+                      # ── 4. Health check ──────────────────────────
+                      echo "Waiting for server to start..."
+                      sleep 10
+                      curl -sf http://localhost/api/v1/health \
+                        && echo "✅ Backend is healthy" \
+                        || (echo "❌ Health check failed — last 30 log lines:" \
+                            && sudo docker logs --tail 30 go4-backend \
+                            && exit 1)
