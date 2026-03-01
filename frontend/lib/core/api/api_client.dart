@@ -7,11 +7,12 @@ import '../../models/search_filter.dart';
 import '../../models/search_result.dart';
 
 /// Base URL strategy:
-///   - Physical device via USB  → localhost:5000  (adb reverse tcp:5000 tcp:5000 tunnels to host)
-///   - Android emulator         → 10.0.2.2:5000   (emulator alias for host localhost)
-///   Host port 5000 maps to container port 3000 via docker-compose.
-const String _deviceBase = 'http://localhost:5000'; // USB + adb reverse
-// const String _emulatorBase = 'http://10.0.2.2:5000'; // uncomment for Android emulator
+///   - Azure VM (active)         → http://20.235.241.126  (Docker port 80 → Node :3000)
+///   - Physical device via USB   → http://localhost:5000  (adb reverse tcp:5000 tcp:5000)
+///   - Android emulator          → http://10.0.2.2:5000   (emulator alias for host)
+const String _azureBase       = 'http://20.235.241.126';   // Azure VM  ← active
+// const String _deviceBase   = 'http://localhost:5000';   // USB + adb reverse (local)
+// const String _emulatorBase = 'http://10.0.2.2:5000';   // Android emulator (local)
 
 class ApiClient {
   ApiClient._();
@@ -61,9 +62,8 @@ class ApiClient {
     return dio;
   }
 
-  /// Returns the correct base URL for the current run target.
-  /// Switch to _emulatorBase when using the Android emulator instead of a real device.
-  String _resolveBaseUrl() => _deviceBase;
+  /// To switch environments uncomment the matching constant above and update this line.
+  String _resolveBaseUrl() => _azureBase;
 
   // ── Health ──────────────────────────────────────────────────────────────
 
