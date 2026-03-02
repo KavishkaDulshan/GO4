@@ -703,7 +703,7 @@ class _SpecRow extends StatelessWidget {
             child: Text(
               spec.key,
               style: TextStyle(
-                  color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
+                  color: cs.onSurface,
                   fontSize: 13,
                   fontWeight: FontWeight.w500),
             ),
@@ -750,7 +750,7 @@ class _LegacySpecRow extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                    color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
+                    color: cs.onSurface,
                     fontSize: 13,
                     fontWeight: FontWeight.w500),
               ),

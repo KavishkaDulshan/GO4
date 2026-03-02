@@ -18,8 +18,6 @@ class WishlistScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
     final items = ref.watch(wishlistProvider);
 
     return Scaffold(
@@ -260,7 +258,7 @@ class _WishlistCard extends ConsumerWidget {
                         Text(
                           product.source!,
                           style: TextStyle(
-                            color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                            color:    cs.onSurface,
                             fontSize: 12,
                           ),
                         ),

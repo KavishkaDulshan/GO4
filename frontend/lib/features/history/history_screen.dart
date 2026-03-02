@@ -21,8 +21,6 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
     final auth    = ref.watch(authProvider);
     final history = ref.watch(historyProvider);
 
@@ -366,7 +364,7 @@ class _MiniChip extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          color:    isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+          color:    cs.onSurface,
           fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
@@ -384,7 +382,6 @@ class _ThumbnailStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
     const sz      = 44.0;
     const overlap = 10.0;
     final count   = urls.length.clamp(1, 3);
