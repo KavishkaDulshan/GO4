@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
+import '../core/utils/error_utils.dart';
 import '../models/user_profile.dart';
 
 const _prefToken = 'pref_token';
@@ -106,7 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = AuthState(user: user, token: token);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: friendlyError(e));
     }
   }
 

@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/error_utils.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/search_provider.dart';
 
@@ -28,6 +29,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final locationAsync = ref.watch(locationProvider);
     final searchState   = ref.watch(searchProvider);
     final result        = searchState.result;
@@ -70,6 +73,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Widget _buildMap(BuildContext context, LatLng? position, dynamic result) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final initialCamera = CameraPosition(
       target: position ?? const LatLng(0, 0),
       zoom: position != null ? 14 : 2,
@@ -135,10 +140,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               minChildSize: 0.12,
               maxChildSize: 0.65,
               builder: (ctx, scrollCtrl) => Container(
-                decoration: const BoxDecoration(
-                  color: AppTheme.surface,
+                decoration: BoxDecoration(
+                  color: cs.surface,
                   borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20)),
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: ListView(
                   controller: scrollCtrl,
@@ -151,7 +156,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         height: 4,
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white24,
+                          color: isDark
+                              ? Colors.white24
+                              : AppTheme.surfaceBorderLight,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -197,11 +204,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     // Store list
                     if (_placeCount == 0) ...[
                       const SizedBox(height: 12),
-                      const Center(
+                      Center(
                         child: Text(
                           'No stores found nearby.',
                           style: TextStyle(
-                              color: Colors.white38, fontSize: 13),
+                              color: isDark
+                                  ? Colors.white38
+                                  : AppTheme.onSurfaceLowLight,
+                              fontSize: 13),
                         ),
                       ),
                     ] else if (_places.isNotEmpty) ...[
@@ -304,7 +314,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (mounted) {
         setState(() => _isLoadingPlaces = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load nearby stores: $e')),
+          SnackBar(content: Text(friendlyError(e))),
         );
       }
     }
@@ -361,6 +371,8 @@ class _StoreCardState extends State<_StoreCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final name    = widget.place['name']    as String? ?? 'Store';
     final address = widget.place['address'] as String? ?? '';
     final rating  = (widget.place['rating'] as num?)?.toDouble();
@@ -375,9 +387,11 @@ class _StoreCardState extends State<_StoreCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.surfaceBorder),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,8 +410,8 @@ class _StoreCardState extends State<_StoreCard> {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppTheme.onSurface,
+                        style: TextStyle(
+                          color: cs.onSurface,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -408,8 +422,9 @@ class _StoreCardState extends State<_StoreCard> {
                           address,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: AppTheme.onSurfaceMid, fontSize: 11),
+                          style: TextStyle(
+                              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                              fontSize: 11),
                         ),
                       ],
                       const SizedBox(height: 4),
@@ -443,8 +458,9 @@ class _StoreCardState extends State<_StoreCard> {
                             const SizedBox(width: 2),
                             Text(
                               rating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                  color: AppTheme.onSurfaceMid, fontSize: 11),
+                              style: TextStyle(
+                                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                                  fontSize: 11),
                             ),
                           ],
                         ],
@@ -485,14 +501,15 @@ class _StoreCardState extends State<_StoreCard> {
                           children: [
                             Text(
                               _expanded ? 'Hide' : 'Hours',
-                              style: const TextStyle(
-                                  color: AppTheme.onSurfaceMid, fontSize: 11),
+                              style: TextStyle(
+                                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                                  fontSize: 11),
                             ),
                             Icon(
                               _expanded
                                   ? Icons.expand_less
                                   : Icons.expand_more,
-                              color: AppTheme.onSurfaceMid,
+                              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                               size: 14,
                             ),
                           ],
@@ -506,19 +523,20 @@ class _StoreCardState extends State<_StoreCard> {
 
           // ── Expanded details ──────────────────────────────────────────────
           if (_expanded) ...[
-            const Divider(
+            Divider(
                 height: 1,
-                color: AppTheme.surfaceBorder),
+                color: Theme.of(context).dividerColor),
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: _loadingDetails
-                  ? const Center(
+                  ? Center(
                       child: SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppTheme.onSurfaceMid),
+                            strokeWidth: 2,
+                            color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
                       ),
                     )
                   : Column(
@@ -528,13 +546,15 @@ class _StoreCardState extends State<_StoreCard> {
                         if (phone != null) ...[
                           Row(
                             children: [
-                              const Icon(Icons.phone,
-                                  size: 13, color: AppTheme.onSurfaceMid),
+                              Icon(Icons.phone,
+                                  size: 13,
+                                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
                               const SizedBox(width: 6),
                               Text(
                                 phone,
-                                style: const TextStyle(
-                                    color: AppTheme.onSurfaceMid, fontSize: 12),
+                                style: TextStyle(
+                                    color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                                    fontSize: 12),
                               ),
                             ],
                           ),
@@ -544,16 +564,18 @@ class _StoreCardState extends State<_StoreCard> {
                         if (website != null) ...[
                           Row(
                             children: [
-                              const Icon(Icons.language,
-                                  size: 13, color: AppTheme.onSurfaceMid),
+                              Icon(Icons.language,
+                                  size: 13,
+                                  color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   website,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: AppTheme.onSurfaceMid, fontSize: 12),
+                                  style: TextStyle(
+                                      color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                                      fontSize: 12),
                                 ),
                               ),
                             ],
@@ -562,10 +584,10 @@ class _StoreCardState extends State<_StoreCard> {
                         ],
                         // Weekday hours
                         if (weekdayText != null && weekdayText.isNotEmpty) ...[
-                          const Text(
+                          Text(
                             'Opening hours',
                             style: TextStyle(
-                              color: AppTheme.onSurfaceMid,
+                              color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -576,16 +598,17 @@ class _StoreCardState extends State<_StoreCard> {
                                     const EdgeInsets.only(bottom: 2),
                                 child: Text(
                                   line,
-                                  style: const TextStyle(
-                                      color: AppTheme.onSurfaceMid,
+                                  style: TextStyle(
+                                      color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
                                       fontSize: 11),
                                 ),
                               )),
                         ] else if (!_loadingDetails)
-                          const Text(
+                          Text(
                             'Hours not available',
                             style: TextStyle(
-                                color: AppTheme.onSurfaceMid, fontSize: 11),
+                                color: isDark ? AppTheme.onSurfaceMid : AppTheme.onSurfaceMidLight,
+                                fontSize: 11),
                           ),
                       ],
                     ),

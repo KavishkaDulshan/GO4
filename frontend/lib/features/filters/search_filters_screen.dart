@@ -52,21 +52,23 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final state = ref.watch(searchProvider);
     final tags = state.analyzedTags ?? {};
     final product = tags['productName'] as String? ?? 'Product';
     final cat = tags['category'] as String? ?? '';
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Refine Search'),
         actions: [
           TextButton(
             onPressed: _startOver,
-            child: const Text('Start over',
-                style: TextStyle(color: Colors.white54)),
+            child: Text('Start over',
+                style: TextStyle(
+                    color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight)),
           ),
         ],
       ),
@@ -84,13 +86,13 @@ class _SearchFiltersScreenState extends ConsumerState<SearchFiltersScreen> {
 
           // ── Section label ─────────────────────────────────────────────────
           if (_filters.isNotEmpty)
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, 4),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
                 child: Text(
                   'Customize your search',
                   style: TextStyle(
-                    color: Colors.white54,
+                    color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -157,6 +159,8 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final color = tags['color'] as String?;
     final material = tags['material'] as String?;
     final style = tags['style'] as String?;
@@ -165,7 +169,7 @@ class _ProductCard extends StatelessWidget {
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
       ),
@@ -181,7 +185,7 @@ class _ProductCard extends StatelessWidget {
                 width: 72,
                 height: 72,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _imageFallback(),
+                errorBuilder: (_, __, ___) => _imageFallback(context),
               ),
             ),
             const SizedBox(width: 14),
@@ -232,16 +236,19 @@ class _ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _imageFallback() => Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: AppTheme.tagChipBg,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.shopping_bag_outlined,
-            size: 32, color: AppTheme.primary),
-      );
+  Widget _imageFallback(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Icon(Icons.shopping_bag_outlined,
+          size: 32, color: AppTheme.primary),
+    );
+  }
 }
 
 class _Chip extends StatelessWidget {
@@ -307,6 +314,8 @@ class _DropdownFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final currentValue =
         filter.options.any((o) => o.value == filter.selectedValue)
             ? filter.selectedValue
@@ -315,21 +324,29 @@ class _DropdownFilter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(
+            color: isDark
+                ? Colors.white12
+                : AppTheme.surfaceBorderLight.withValues(alpha: 0.5)),
       ),
       child: DropdownButton<String>(
         value: currentValue,
         isExpanded: true,
         underline: const SizedBox.shrink(),
-        dropdownColor: AppTheme.surface,
+        dropdownColor: cs.surface,
         style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
-        hint: const Text('Any', style: TextStyle(color: Colors.white38)),
+        hint: Text('Any',
+            style: TextStyle(
+                color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight)),
         items: [
-          const DropdownMenuItem<String>(
+          DropdownMenuItem<String>(
             value: null,
-            child: Text('Any', style: TextStyle(color: Colors.white38)),
+            child: Text('Any',
+                style: TextStyle(
+                    color:
+                        isDark ? Colors.white38 : AppTheme.onSurfaceLowLight)),
           ),
           ...filter.options.map((opt) => DropdownMenuItem<String>(
                 value: opt.value,
@@ -351,6 +368,8 @@ class _ChipsFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -372,17 +391,21 @@ class _ChipsFilter extends StatelessWidget {
             decoration: BoxDecoration(
               color: selected
                   ? AppTheme.primary.withValues(alpha: 0.2)
-                  : AppTheme.surface,
+                  : cs.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: selected ? AppTheme.primary : Colors.white24,
+                color: selected
+                    ? AppTheme.primary
+                    : (isDark ? Colors.white24 : AppTheme.surfaceBorderLight),
                 width: selected ? 1.5 : 1,
               ),
             ),
             child: Text(
               opt.label,
               style: TextStyle(
-                color: selected ? AppTheme.primary : Colors.white70,
+                color: selected
+                    ? AppTheme.primary
+                    : (isDark ? Colors.white70 : AppTheme.onSurfaceLight),
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),

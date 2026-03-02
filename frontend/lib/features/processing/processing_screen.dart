@@ -58,9 +58,18 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen>
             context.go('/results');
           } else if (status == SearchStatus.error) {
             final msg =
-                ref.read(searchProvider).errorMessage ?? 'Search failed';
+                ref.read(searchProvider).errorMessage ?? 'Search failed. Please try again.';
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(msg)),
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: Colors.white70, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(msg)),
+                  ],
+                ),
+              ),
             );
             context.pop();
           }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/api_client.dart';
+import '../core/utils/error_utils.dart';
 import '../models/product.dart';
 import '../models/user_preferences.dart';
 import 'auth_provider.dart';
@@ -89,7 +90,7 @@ class RecommendationsNotifier extends StateNotifier<RecommendationsState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: friendlyError(e),
       );
     }
   }

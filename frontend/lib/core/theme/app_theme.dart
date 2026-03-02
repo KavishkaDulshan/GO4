@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// GO4 Design System — Calm Forest-Green Theme
+/// GO4 Design System
 ///
-/// HCI-compliant palette inspired by MongoDB Atlas and GitHub dark mode:
-/// · Deep neutral dark backgrounds for reduced eye strain
-/// · Forest green primary — natural, accessible, non-fatiguing
-/// · Warm amber accent for prices and highlights (WCAG AA contrast)
-/// · All interactive targets are ≥ 48 dp (WCAG 2.5.5 AAA touch)
+/// Dark theme  — Forest-green on near-black (GitHub-inspired)
+/// Light theme — Pure monochromatic: black / white / shades of gray
+///               No hue variation; depth comes from value contrast only.
 class AppTheme {
   const AppTheme._();
 
-  // ── Core colours ─────────────────────────────────────────────────────────────
-  static const Color primary      = Color(0xFF2DA44E); // forest green (GitHub green)
+  // ── Dark theme core colours ───────────────────────────────────────────────
+  static const Color primary      = Color(0xFF2DA44E); // forest green
   static const Color primaryLight = Color(0xFF3FB465); // lighter green
   static const Color background   = Color(0xFF0D1117); // near-black
   static const Color surface      = Color(0xFF161B22); // dark card
@@ -24,20 +22,23 @@ class AppTheme {
   static const Color tagChipBg    = Color(0xFF2D333B); // chip background
   static const Color error        = Color(0xFFF85149); // soft red
 
-  // ── Light-theme surface colours ──────────────────────────────────────────────
-  static const Color backgroundLight    = Color(0xFFF6F8FA); // GitHub light bg
-  static const Color surfaceLight       = Color(0xFFFFFFFF); // white cards
-  static const Color surfaceHighLight   = Color(0xFFEEF0F2); // elevated surface
-  static const Color surfaceBorderLight = Color(0xFFD0D7DE); // subtle borders
-  static const Color onSurfaceLight     = Color(0xFF1F2328); // near-black text
-  static const Color onSurfaceMidLight  = Color(0xFF636C76); // muted text
-  static const Color tagChipBgLight     = Color(0xFFEFF1F3); // chip background
+  // ── Light theme — monochromatic palette ───────────────────────────────────
+  //    Value scale: white → light gray → mid gray → dark gray → near-black
+  static const Color backgroundLight    = Color(0xFFF8F8F8); // page bg
+  static const Color surfaceLight       = Color(0xFFFFFFFF); // card bg
+  static const Color surfaceHighLight   = Color(0xFFEFEFEF); // inputs / raised
+  static const Color surfaceBorderLight = Color(0xFFDEDEDE); // borders
+  static const Color onSurfaceLight     = Color(0xFF111111); // primary text
+  static const Color onSurfaceMidLight  = Color(0xFF6B6B6B); // secondary text
+  static const Color onSurfaceLowLight  = Color(0xFF9E9E9E); // placeholder
+  static const Color tagChipBgLight     = Color(0xFFEBEBEB); // chip background
+  static const Color monoInk            = Color(0xFF111111); // buttons, links
 
-  // ── Semantic aliases (for readability) ───────────────────────────────────────
-  static const Color success = Color(0xFF3FB950); // green check
-  static const Color warning = Color(0xFFD29922); // amber warning
+  // ── Semantic colours (shared) ─────────────────────────────────────────────
+  static const Color success = Color(0xFF3FB950);
+  static const Color warning = Color(0xFFD29922);
 
-  // ── Gradients ────────────────────────────────────────────────────────────────
+  // ── Dark-theme gradients ──────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF2DA44E), Color(0xFF1A7F37)],
     begin: Alignment.topLeft,
@@ -55,7 +56,14 @@ class AppTheme {
     radius: 0.7,
   );
 
-  // ── Shadows ──────────────────────────────────────────────────────────────────
+  // ── Light-theme gradient (monochromatic) ──────────────────────────────────
+  static const LinearGradient monoGradient = LinearGradient(
+    colors: [Color(0xFF111111), Color(0xFF444444)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ── Shadows ───────────────────────────────────────────────────────────────
   static List<BoxShadow> get primaryGlow => [
         BoxShadow(
           color: primary.withValues(alpha: 0.28),
@@ -80,7 +88,21 @@ class AppTheme {
         ),
       ];
 
-  // ── Theme ────────────────────────────────────────────────────────────────────
+  /// Subtle shadow for light-theme cards (value contrast only, no colour).
+  static List<BoxShadow> get lightCardShadow => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.07),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 2,
+          offset: const Offset(0, 1),
+        ),
+      ];
+
+  // ── Dark theme ────────────────────────────────────────────────────────────
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: background,
@@ -91,7 +113,6 @@ class AppTheme {
           onSurface: onSurface,
           error:     error,
         ),
-        // Typography — clean hierarchy, legible weights
         textTheme: const TextTheme(
           displayLarge:  TextStyle(color: onSurface, fontWeight: FontWeight.w800, letterSpacing: -1.0),
           displayMedium: TextStyle(color: onSurface, fontWeight: FontWeight.w700, letterSpacing: -0.5),
@@ -102,13 +123,12 @@ class AppTheme {
           bodySmall:     TextStyle(color: onSurfaceMid),
           labelLarge:    TextStyle(color: onSurface, fontWeight: FontWeight.w600),
         ),
-        // AppBar — minimal, no shadow
         appBarTheme: const AppBarTheme(
-          backgroundColor:  background,
-          elevation:        0,
+          backgroundColor:        background,
+          elevation:              0,
           scrolledUnderElevation: 0,
-          centerTitle:      true,
-          titleTextStyle:   TextStyle(
+          centerTitle:            true,
+          titleTextStyle: TextStyle(
             fontSize:    18,
             fontWeight:  FontWeight.w700,
             color:       onSurface,
@@ -116,7 +136,6 @@ class AppTheme {
           ),
           iconTheme: IconThemeData(color: onSurface),
         ),
-        // Cards — flat, border-defined
         cardTheme: CardThemeData(
           color:     surface,
           elevation: 0,
@@ -125,19 +144,17 @@ class AppTheme {
             side: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
           ),
         ),
-        // Chips — compact, readable
         chipTheme: const ChipThemeData(
-          backgroundColor:  tagChipBg,
-          labelStyle:       TextStyle(color: onSurface, fontSize: 12),
-          shape:            StadiumBorder(),
-          padding:          EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          side:             BorderSide.none,
+          backgroundColor: tagChipBg,
+          labelStyle:      TextStyle(color: onSurface, fontSize: 12),
+          shape:           StadiumBorder(),
+          padding:         EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          side:            BorderSide.none,
         ),
-        // Input — clear affordance, 14px border-radius
         inputDecorationTheme: InputDecorationTheme(
-          filled:     true,
-          fillColor:  surfaceHigh,
-          hintStyle:  const TextStyle(color: Color(0xFF484F58)),
+          filled:    true,
+          fillColor: surfaceHigh,
+          hintStyle: const TextStyle(color: Color(0xFF484F58)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide:   BorderSide.none,
@@ -152,127 +169,11 @@ class AppTheme {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
-        // Progress
         progressIndicatorTheme: const ProgressIndicatorThemeData(color: primary),
-        // Snack bars
         snackBarTheme: SnackBarThemeData(
           backgroundColor: surfaceHigh,
           contentTextStyle: const TextStyle(color: onSurface),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          elevation: 4,
-        ),
-        // Elevated buttons — large touch target (≥ 48dp), accessible green
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor:  primary,
-            foregroundColor:  Colors.white,
-            elevation:        0,
-            shadowColor:      Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            textStyle: const TextStyle(
-              fontSize:   15,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.1,
-            ),
-          ),
-        ),
-        // Divider
-        dividerTheme: DividerThemeData(
-          color:     Colors.white.withValues(alpha: 0.07),
-          thickness: 1,
-          space:     1,
-        ),
-        // Icon buttons
-        iconButtonTheme: IconButtonThemeData(
-          style: IconButton.styleFrom(foregroundColor: onSurface),
-        ),
-        // PopupMenuButton
-        popupMenuTheme: PopupMenuThemeData(
-          color: surfaceHigh,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: const BorderSide(color: surfaceBorder),
-          ),
-          textStyle: const TextStyle(color: onSurface, fontSize: 14),
-        ),
-      );
-
-  // ── Light theme ──────────────────────────────────────────────────────────────
-  static ThemeData get light => ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: backgroundLight,
-        colorScheme: const ColorScheme.light(
-          primary:   primary,
-          secondary: accent,
-          surface:   surfaceLight,
-          onSurface: onSurfaceLight,
-          error:     error,
-        ),
-        textTheme: const TextTheme(
-          displayLarge:  TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w800, letterSpacing: -1.0),
-          displayMedium: TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-          titleLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700),
-          titleMedium:   TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
-          bodyLarge:     TextStyle(color: onSurfaceLight),
-          bodyMedium:    TextStyle(color: onSurfaceMidLight),
-          bodySmall:     TextStyle(color: onSurfaceMidLight),
-          labelLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor:  backgroundLight,
-          elevation:        0,
-          scrolledUnderElevation: 0,
-          centerTitle:      true,
-          titleTextStyle: TextStyle(
-            fontSize:    18,
-            fontWeight:  FontWeight.w700,
-            color:       onSurfaceLight,
-            letterSpacing: -0.2,
-          ),
-          iconTheme: IconThemeData(color: onSurfaceLight),
-        ),
-        cardTheme: CardThemeData(
-          color:     surfaceLight,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: surfaceBorderLight),
-          ),
-        ),
-        chipTheme: const ChipThemeData(
-          backgroundColor: tagChipBgLight,
-          labelStyle:      TextStyle(color: onSurfaceLight, fontSize: 12),
-          shape:           StadiumBorder(),
-          padding:         EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          side:            BorderSide.none,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled:    true,
-          fillColor: surfaceHighLight,
-          hintStyle: const TextStyle(color: onSurfaceMidLight),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:   BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:   const BorderSide(color: surfaceBorderLight),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide:   const BorderSide(color: primary, width: 1.5),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        ),
-        progressIndicatorTheme: const ProgressIndicatorThemeData(color: primary),
-        snackBarTheme: SnackBarThemeData(
-          backgroundColor:  surfaceHighLight,
-          contentTextStyle: const TextStyle(color: onSurfaceLight),
-          behavior:         SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 4,
         ),
@@ -293,21 +194,190 @@ class AppTheme {
             ),
           ),
         ),
+        dividerTheme: DividerThemeData(
+          color:     Colors.white.withValues(alpha: 0.07),
+          thickness: 1,
+          space:     1,
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(foregroundColor: onSurface),
+        ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: surfaceHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: surfaceBorder),
+          ),
+          textStyle: const TextStyle(color: onSurface, fontSize: 14),
+        ),
+      );
+
+  // ── Light theme — monochromatic ───────────────────────────────────────────
+  static ThemeData get light => ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: backgroundLight,
+        colorScheme: const ColorScheme.light(
+          primary:    monoInk,           // near-black primary
+          onPrimary:  Colors.white,
+          secondary:  Color(0xFF444444), // dark gray secondary
+          onSecondary: Colors.white,
+          surface:    surfaceLight,
+          onSurface:  onSurfaceLight,
+          surfaceContainerHighest: surfaceHighLight,
+          outline:    surfaceBorderLight,
+          error:      error,
+        ),
+        // ── Typography ───────────────────────────────────────────────────────
+        textTheme: const TextTheme(
+          displayLarge:  TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w800, letterSpacing: -1.0),
+          displayMedium: TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+          titleLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w700),
+          titleMedium:   TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
+          bodyLarge:     TextStyle(color: onSurfaceLight),
+          bodyMedium:    TextStyle(color: onSurfaceMidLight),
+          bodySmall:     TextStyle(color: onSurfaceMidLight),
+          labelLarge:    TextStyle(color: onSurfaceLight, fontWeight: FontWeight.w600),
+        ),
+        // ── AppBar — white bg, near-black content ─────────────────────────────
+        appBarTheme: const AppBarTheme(
+          backgroundColor:        surfaceLight,
+          elevation:              0,
+          scrolledUnderElevation: 0.5,
+          shadowColor:            Color(0x14000000),
+          centerTitle:            true,
+          titleTextStyle: TextStyle(
+            fontSize:    18,
+            fontWeight:  FontWeight.w700,
+            color:       onSurfaceLight,
+            letterSpacing: -0.2,
+          ),
+          iconTheme: IconThemeData(color: onSurfaceLight),
+        ),
+        // ── Cards — white, neutral border ─────────────────────────────────────
+        cardTheme: CardThemeData(
+          color:       surfaceLight,
+          elevation:   0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: surfaceBorderLight),
+          ),
+        ),
+        // ── Chips — dark label on light chip bg ──────────────────────────────
+        chipTheme: const ChipThemeData(
+          backgroundColor: tagChipBgLight,
+          labelStyle:      TextStyle(color: onSurfaceLight, fontSize: 12, fontWeight: FontWeight.w500),
+          shape:           StadiumBorder(),
+          padding:         EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          side:            BorderSide(color: surfaceBorderLight),
+        ),
+        // ── Inputs — light gray fill, near-black focus ring ──────────────────
+        inputDecorationTheme: InputDecorationTheme(
+          filled:    true,
+          fillColor: surfaceHighLight,
+          hintStyle: const TextStyle(color: onSurfaceLowLight),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   const BorderSide(color: surfaceBorderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:   const BorderSide(color: monoInk, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+        // ── Progress — near-black ─────────────────────────────────────────────
+        progressIndicatorTheme: const ProgressIndicatorThemeData(color: monoInk),
+        // ── Snack bars — near-black bg, white text (high contrast) ────────────
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor:  const Color(0xFF1A1A1A),
+          contentTextStyle: const TextStyle(color: Colors.white),
+          behavior:         SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 6,
+        ),
+        // ── Elevated buttons — near-black bg, white label ─────────────────────
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: monoInk,
+            foregroundColor: Colors.white,
+            elevation:       0,
+            shadowColor:     Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize:   15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+        // ── Outlined buttons — dark border, dark label ────────────────────────
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: monoInk,
+            side: const BorderSide(color: monoInk),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
+        ),
+        // ── Text buttons ──────────────────────────────────────────────────────
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: monoInk,
+          ),
+        ),
+        // ── Divider ───────────────────────────────────────────────────────────
         dividerTheme: const DividerThemeData(
           color:     surfaceBorderLight,
           thickness: 1,
           space:     1,
         ),
+        // ── Icon buttons ──────────────────────────────────────────────────────
         iconButtonTheme: IconButtonThemeData(
           style: IconButton.styleFrom(foregroundColor: onSurfaceLight),
         ),
+        // ── Popup menus — white bg, neutral border ────────────────────────────
         popupMenuTheme: PopupMenuThemeData(
-          color: surfaceHighLight,
+          color: surfaceLight,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: const BorderSide(color: surfaceBorderLight),
           ),
           textStyle: const TextStyle(color: onSurfaceLight, fontSize: 14),
+          elevation: 4,
+          shadowColor: Colors.black26,
+        ),
+        // ── Bottom sheets ─────────────────────────────────────────────────────
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: surfaceLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+        ),
+        // ── Dialogs ───────────────────────────────────────────────────────────
+        dialogTheme: const DialogThemeData(
+          backgroundColor: surfaceLight,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(14)),
+          ),
+          titleTextStyle: TextStyle(
+            color:      onSurfaceLight,
+            fontSize:   17,
+            fontWeight: FontWeight.w700,
+          ),
+          contentTextStyle: TextStyle(
+            color:    onSurfaceMidLight,
+            fontSize: 14,
+          ),
         ),
       );
 }

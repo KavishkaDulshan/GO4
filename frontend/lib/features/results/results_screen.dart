@@ -55,15 +55,18 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final state  = ref.watch(searchProvider);
     final result = state.result;
 
     if (result == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Results')),
-        body: const Center(
+        body: Center(
           child: Text('No results yet.',
-              style: TextStyle(color: Colors.white54)),
+              style: TextStyle(
+                  color: isDark ? Colors.white54 : AppTheme.onSurfaceMidLight)),
         ),
       );
     }
@@ -114,7 +117,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                             size: 16,
                             color: _sort == opt
                                 ? AppTheme.primary
-                                : Colors.white38,
+                                : (isDark ? Colors.white38 : AppTheme.onSurfaceLowLight),
                           ),
                           const SizedBox(width: 8),
                           Text(opt.label),
@@ -170,9 +173,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                   GestureDetector(
                     onTap: () =>
                         setState(() => _sort = _SortOption.relevance),
-                    child: const Text('Reset',
-                        style:
-                            TextStyle(color: Colors.white38, fontSize: 12)),
+                    child: Text('Reset',
+                        style: TextStyle(
+                            color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
+                            fontSize: 12)),
                   ),
                 ],
               ),
@@ -320,6 +324,8 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     final img    = product.displayImage;
     final isSaved = ref.watch(
       wishlistProvider.select(
@@ -330,10 +336,12 @@ class _ProductCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color:        AppTheme.surface,
+        color:        cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Theme.of(context).dividerColor,
         ),
         boxShadow: [
           BoxShadow(
@@ -366,7 +374,7 @@ class _ProductCard extends ConsumerWidget {
                             imageUrl:    img,
                             fit:         BoxFit.cover,
                             placeholder: (_, __) => Container(
-                              color: AppTheme.tagChipBg,
+                              color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
                               child: const Center(
                                 child: SizedBox(
                                   width: 20, height: 20,
@@ -378,16 +386,16 @@ class _ProductCard extends ConsumerWidget {
                               ),
                             ),
                             errorWidget: (_, __, ___) => Container(
-                              color:  AppTheme.tagChipBg,
-                              child:  const Icon(
+                              color:  isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
+                              child:  Icon(
                                 Icons.image_not_supported_outlined,
                                 size:  28,
-                                color: Colors.white24,
+                                color: isDark ? Colors.white24 : AppTheme.surfaceBorderLight,
                               ),
                             ),
                           )
                         : Container(
-                            color: AppTheme.tagChipBg,
+                            color: isDark ? AppTheme.tagChipBg : AppTheme.tagChipBgLight,
                             child: const Icon(
                               Icons.shopping_bag_outlined,
                               size:  32,
@@ -434,8 +442,8 @@ class _ProductCard extends ConsumerWidget {
                               const SizedBox(width: 7),
                               Text(
                                 product.originalPrice!,
-                                style: const TextStyle(
-                                  color:      Colors.white38,
+                                style: TextStyle(
+                                  color:      isDark ? Colors.white38 : AppTheme.onSurfaceLowLight,
                                   fontSize:   12,
                                   decoration: TextDecoration.lineThrough,
                                 ),
@@ -516,15 +524,18 @@ class _ProductCard extends ConsumerWidget {
                           isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                           key:   ValueKey(isSaved),
                           size:  22,
-                          color: isSaved ? Colors.pinkAccent : Colors.white38,
+                          color: isSaved
+                              ? Colors.pinkAccent
+                              : (isDark ? Colors.white38 : AppTheme.onSurfaceLowLight),
                         ),
                       ),
                     ),
                     const SizedBox(height: 6),
                     const _VerifiedBadge(),
                     const SizedBox(height: 6),
-                    const Icon(Icons.chevron_right_rounded,
-                        size: 18, color: Colors.white38),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 18,
+                        color: isDark ? Colors.white38 : AppTheme.onSurfaceLowLight),
                   ],
                 ),
               ],
